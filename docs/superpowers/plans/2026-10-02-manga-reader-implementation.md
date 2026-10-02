@@ -76,11 +76,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `SourceID` / `WorkID` 为 UUID 包装；`SourceWorkID(sourceID: SourceID, externalID: String)`、`ChapterID(sourceWorkID: SourceWorkID, externalID: String)`、`PageID(chapterID: ChapterID, externalID: String)`。模型定义 `Source`、`Work`、`SourceWork`、`Chapter`、`PageResource`、`ReadingProgress`、`ReaderPreferences`、`UserSettings`、`SourceCapabilities`、`ParserBinding`。页面有 `id`、`ordinal`、`request: ResourceRequest`；进度有章节、页面和 `fraction`。Source 保留 baseURL、revision、enabled 与绑定。SourceWork 保留原始标题、别名、作者、URL 和能力。UserSettings 在 ReadingModels.swift 定义，theme 默认为 system、通知 false、解码缓存 64 MiB、磁盘缓存 256 MiB。
 
-- [ ] **1. 写失败测试：** 先建立能发现测试的最小 manifest 与空 Core 源文件，然后写 `sameExternalIDOnDifferentSources()` 断言 `#expect(chapterA.id != chapterB.id)`；`differentBasePathsStayDistinct()` 断言 `/a/` 与 `/b/` 非重复源；`ephemeralURLDoesNotChangePageIdentity()` 断言签名变化后 PageID 不变。TestSupport 提供固定两源、作品、章节和两个页 ID，后续任务复用。
-- [ ] **2. 验证失败：** `swift test --filter IdentityTests`，应因目标类型/功能未定义而失败。
-- [ ] **3. 实现：** 身份按父级组合；`canonicalSourceURL(_ url: URL) throws -> URL` 移除 fragment 和默认端口，保留子路径及语义 query，拒绝非 HTTP(S)。同时定义任务 3 描述的 ResourceRequest / ResourceResponse，保证 PageResource 本步能编译。建立错误分类及可序列化模型，折叠包初始化和依赖锁定到本任务。
-- [ ] **4. 验证通过：** 同一命令应全部通过；`swift build` 应退出 0。
-- [ ] **5. 提交：** 仅提交本任务文件和锁文件，提交信息 `feat: define manga domain and stable identities`。
+- [x] **1. 写失败测试：** 先建立能发现测试的最小 manifest 与空 Core 源文件，然后写 `sameExternalIDOnDifferentSources()` 断言 `#expect(chapterA.id != chapterB.id)`；`differentBasePathsStayDistinct()` 断言 `/a/` 与 `/b/` 非重复源；`ephemeralURLDoesNotChangePageIdentity()` 断言签名变化后 PageID 不变。TestSupport 提供固定两源、作品、章节和两个页 ID，后续任务复用。
+- [x] **2. 验证失败：** `swift test --filter IdentityTests`，应因目标类型/功能未定义而失败。
+- [x] **3. 实现：** 身份按父级组合；`canonicalSourceURL(_ url: URL) throws -> URL` 移除 fragment 和默认端口，保留子路径及语义 query，拒绝非 HTTP(S)。同时定义任务 3 描述的 ResourceRequest / ResourceResponse，保证 PageResource 本步能编译。建立错误分类及可序列化模型，折叠包初始化和依赖锁定到本任务。
+- [x] **4. 验证通过：** 同一命令应全部通过；`swift build` 应退出 0。
+- [x] **5. 提交：** 仅提交本任务文件和锁文件，提交信息 `feat: define manga domain and stable identities`。
 
 ## Task 2: 本地数据库、关联与迁移
 
