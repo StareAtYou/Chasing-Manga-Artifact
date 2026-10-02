@@ -121,6 +121,23 @@ public actor LibraryStore {
     public func progress(for id: SourceWorkID) throws -> ReadingProgress? { try record(kind: "progress", key: id.key, as: ReadingProgress.self) }
     public func save(preferences: ReaderPreferences, for id: WorkID) throws { try saveRecord(kind: "preferences", key: id.key, value: preferences) }
     public func preferences(for id: WorkID) throws -> ReaderPreferences { try record(kind: "preferences", key: id.key, as: ReaderPreferences.self) ?? ReaderPreferences() }
+    public func downloadTask(id: UUID) throws -> DownloadTask? { try record(kind: "download", key: id.uuidString, as: DownloadTask.self) }
+    public func downloadTasks() throws -> [DownloadTask] { try records(kind: "download", as: DownloadTask.self).sorted { $0.updatedAt > $1.updatedAt } }
+    public func offlineManifest(taskID: UUID) throws -> OfflineManifest? { try record(kind: "offline-manifest", key: taskID.uuidString, as: OfflineManifest.self) }
+    public func saveDownload(task: DownloadTask, manifest: OfflineManifest?, expectedGeneration: UUID? = nil) throws -> Bool {
+        try db.transaction {
+            if let expectedGeneration, try downloadTask(id: task.id)?.generation != expectedGeneration { return false }
+            try saveRecord(kind: "download", key: task.id.uuidString, parent: task.chapter.id.key, value: task)
+            if let manifest {
+                guard manifest.taskID == task.id, manifest.chapterID == task.chapter.id else { throw MangaError.storage("离线清单身份不一致") }
+                try saveRecord(kind: "offline-manifest", key: task.id.uuidString, parent: task.chapter.id.key, value: manifest)
+            }
+            return true
+        }
+    }
+    public func deleteDownload(taskID: UUID) throws {
+        try db.transaction { try deleteRecord(kind: "download", key: taskID.uuidString); try deleteRecord(kind: "offline-manifest", key: taskID.uuidString) }
+    }
     public func save(settings: UserSettings) throws { try saveRecord(kind: "settings", key: "local", value: settings) }
     public func settings() throws -> UserSettings { try record(kind: "settings", key: "local", as: UserSettings.self) ?? UserSettings() }
 }

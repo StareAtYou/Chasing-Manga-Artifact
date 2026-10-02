@@ -1,5 +1,5 @@
 import Foundation
-public enum MangaError: Error, Equatable, Sendable, LocalizedError {
+public enum MangaError: Error, Codable, Equatable, Sendable, LocalizedError {
     case invalidURL, networkUnavailable, timedOut, requiresLogin, verificationRequired, chapterUnavailable, regionRestricted
     case accessRestricted(Int), parseMismatch(String), unsupported(String), expiredResource, invalidImage, diskFull, storage(String)
     public var errorDescription: String? {

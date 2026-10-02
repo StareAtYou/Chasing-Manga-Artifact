@@ -208,11 +208,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `DownloadManager.enqueue(chapter: Chapter, pages: [PageResource]) async throws -> UUID`、`pause(taskID: UUID)`、`resume(taskID: UUID)`、`cancel(taskID: UUID)`、`retry(taskID: UUID)`、`deleteDownloaded(chapterID: ChapterID)`、`restore() async throws`、`offlinePages(chapterID: ChapterID) async throws -> [URL]`；操作均 async throws。`DownloadTask` / `OfflineManifest` 保存稳定页身份、有序文件、校验摘要、状态和来源快照。Core 的 DownloadModels 定义 `PageTransferring.download(_: ResourceRequest, sourceID: SourceID, taskID: UUID, to: URL) async throws -> TransferResult` 与 `recoverTransfers() async throws -> [TransferRecord]`，结果保存状态码、文件位置及字节数，记录保存 taskID 和传输状态；Platform 实现后台传输。新增 store 的 download/manifest 事务接口。
 
-- [ ] **1. 写失败测试：** `restartWithNewSignatureKeepsCompletedPages()` 验证重启刷新 URL 后仅补缺页；`missingOrCorruptPageIsNotComplete()` 断言 `#expect(task.state != .completed)`；`clearCachePreservesOfflineChapter()` 验证缓存清理后断网读取完整；`diskFullPausesWithoutDeletingDownloads()` 验证磁盘不足状态；`removedSourceStillReadsOffline()` 验证源删除后离线可读。
-- [ ] **2. 验证失败：** `swift test --filter DownloadManagerTests` 应失败。
-- [ ] **3. 实现：** 状态 queued/running/paused/failed/completed/cancelled，逐页校验后提交文件和 DB；恢复时验证文件摘要和 manifest，再从源刷新临时资源。支持 Range 才按字节续传，否则按页恢复。后台 URLSession completion 通过稳定 taskID 映射，系统中断后重开核对实际任务；运行中停用源暂停其任务。取消完成文件可移为缓存，删除离线内容只删对应 manifest 文件。
+- [x] **1. 写失败测试：** `restartWithNewSignatureKeepsCompletedPages()` 验证重启刷新 URL 后仅补缺页；`missingOrCorruptPageIsNotComplete()` 断言 `#expect(task.state != .completed)`；`clearCachePreservesOfflineChapter()` 验证缓存清理后断网读取完整；`diskFullPausesWithoutDeletingDownloads()` 验证磁盘不足状态；`removedSourceStillReadsOffline()` 验证源删除后离线可读。
+- [x] **2. 验证失败：** `swift test --filter DownloadManagerTests` 应失败。
+- [x] **3. 实现：** 状态 queued/running/paused/failed/completed/cancelled，逐页校验后提交文件和 DB；恢复时验证文件摘要和 manifest，再从源刷新临时资源。支持 Range 才按字节续传，否则按页恢复。后台 URLSession completion 通过稳定 taskID 映射，系统中断后重开核对实际任务；运行中停用源暂停其任务。取消完成文件可移为缓存，删除离线内容只删对应 manifest 文件。
 - [ ] **4. 验证通过：** 核心测试全通过；完整 Xcode 下验证后台传输恢复和断网阅读，不承诺强制退出后继续运行。
-- [ ] **5. 提交：** `feat: download and restore verified offline chapters`。
+- [x] **5. 提交：** `feat: download and restore verified offline chapters`。
 
 ## Task 13: 更新基线、通知和后台检查
 
