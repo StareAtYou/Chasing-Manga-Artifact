@@ -18,14 +18,14 @@ public actor ImagePipeline {
     public init(client: any HTTPClient, files: PageFileStore, verifier: any ImageVerifying = ImageVerifier(), memoryLimit: Int = 64 * 1024 * 1024, refresh: Refresh? = nil) {
         self.client = client; self.files = files; self.verifier = verifier; self.memoryLimit = max(1, memoryLimit); self.refresh = refresh
     }
-    public func file(for page: PageResource, sourceID: SourceID) async throws -> URL {
+    public func file(for page: PageResource, sourceID: SourceID, priority: RequestPriority = .reading) async throws -> URL {
         try Task.checkCancellation()
         if let cached = await files.cachedFile(for: page.id) {
             if (try? verifier.verify(Data(contentsOf: cached))) != nil { return cached }
             try await files.remove(pageID: page.id)
         }
-        if let old = jobs[page.id], old.priority == .prefetch { old.task.cancel(); jobs.removeValue(forKey: page.id) }
-        let job = jobs[page.id] ?? start(page, sourceID: sourceID, priority: .reading)
+        if let old = jobs[page.id], old.priority > priority || old.task.isCancelled { old.task.cancel(); jobs.removeValue(forKey: page.id) }
+        let job = jobs[page.id] ?? start(page, sourceID: sourceID, priority: priority)
         let consumer = UUID(); readers[page.id, default: [:]][consumer] = job.id
         defer { releaseReader(page.id, consumer: consumer, cancel: false) }
         return try await withTaskCancellationHandler {

@@ -43,9 +43,11 @@ actor WorkPageClient: HTTPClient {
     }
 }
 actor CoverContextClient: HTTPClient {
+    var observed: RequestPriority?
     let image: Data
     init() throws { image = try generatedPNG() }
     func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
+        observed = priority
         guard request.referer == Samples.work().url, sourceID == Samples.sourceA.id else { throw MangaError.accessRestricted(403) }
         return ResourceResponse(data: image, finalURL: request.url, statusCode: 200)
     }
@@ -147,6 +149,13 @@ public let usabilityChecks: [Check] = [
         let retry = try DownloadManager(store: store, transfer: FixtureTransfer(data: try generatedPNG()), verifier: ImageVerifier(), root: root)
         let queued = try await retry.enqueue(chapter: chapter, pages: pages); let done = try await waitForDownload(retry, queued)
         try expect(queued == id && done.state == .completed, "Download button retries failed existing task without duplicating it")
+    },
+    Check("UsabilityTests.coverFetchingYieldsToReading") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let client = try CoverContextClient(); let app = try await MainActor.run { try AppContainer(root: root, client: client, transfer: FixtureTransfer(data: try generatedPNG())) }
+        var work = Samples.work(); work.coverURL = URL(string: "https://covers.test/cover.jpg")!
+        _ = try await app.coverFile(work: work)
+        try expect(await client.observed == .prefetch, "Discovery covers must yield network slots to the reader's visible pages")
     },
     Check("UsabilityTests.coverRequestsKeepSourceReferer") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }

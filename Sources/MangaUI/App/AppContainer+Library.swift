@@ -21,7 +21,7 @@ extension AppContainer {
         let chapter = ChapterID(sourceWorkID: work.id, externalID: "__cover__")
         let id = PageID(chapterID: chapter, externalID: ContentDigest.hex(Data(url.absoluteString.utf8)))
         let page = PageResource(id: id, ordinal: 0, request: ResourceRequest(url: url, referer: work.url))
-        return try await images.file(for: page, sourceID: work.id.sourceID)
+        return try await images.file(for: page, sourceID: work.id.sourceID, priority: .prefetch)
     }
     public func chooseSource(_ sourceWorkID: SourceWorkID, for workID: WorkID) async {
         await perform {
