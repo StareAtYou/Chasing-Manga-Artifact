@@ -124,11 +124,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `SourceDetector.detect(source: Source, samples: [URL]) async -> DetectionReport`；报告区分 verified、limited、ambiguous、needsSamples、accessFailure、unsupported。`SourceService.add(name: String, baseURL: URL, samples: [URL]) async throws -> DetectionReport`、`retest(sourceID: SourceID, samples: [URL]) async throws -> DetectionReport`、`adapter(for: SourceID) async throws -> any SourceAdapter`、`context(for: SourceID) async throws -> ParserContext`、`setEnabled(_: Bool, sourceID: SourceID) async throws`、`remove(sourceID: SourceID) async throws`。绑定存入任务 2 store；探测验证调用任务 4 ImageVerifying。
 
-- [ ] **1. 写失败测试：** `verifiedBindingIsReused()` 断言第二次读取不全量探测；`ambiguousContentRequiresChoice()` 验证正文不一致不自动绑定；`accessFailureIsNotUnsupported()` 验证 403 分类；`cancelledDetectionCannotOverwriteNewBinding()` 验证旧检测结束不写入；`limitedSamplesAreLabelled()` 验证单作品绑定标明有限验证。
-- [ ] **2. 验证失败：** `swift test --filter SourceDetectorTests` 应失败。
-- [ ] **3. 实现：** 同一次检测复用页面，最多 30 次网络请求 / 60 秒，自动发现样本限同源公开链接；用户样本允许确认后的正常重定向。目标两作品各两章，每章验证有序列表及代表性正文解码。候选正文完全一致按优先级选择；差异用稳定页面身份与资源路径判断，临时签名差异不单独制造歧义。版本/URL revision 轻量验证，连续 2 次结构不匹配标记需重新检测；网络或单图错误不清除绑定。
-- [ ] **4. 验证通过：** 相同测试全通过；补充取消时数据库无半成品、编辑 URL 后旧绑定不沿用的断言。
-- [ ] **5. 提交：** `feat: detect custom sources and reuse verified bindings`。
+- [x] **1. 写失败测试：** `verifiedBindingIsReused()` 断言第二次读取不全量探测；`ambiguousContentRequiresChoice()` 验证正文不一致不自动绑定；`accessFailureIsNotUnsupported()` 验证 403 分类；`cancelledDetectionCannotOverwriteNewBinding()` 验证旧检测结束不写入；`limitedSamplesAreLabelled()` 验证单作品绑定标明有限验证。
+- [x] **2. 验证失败：** `swift test --filter SourceDetectorTests` 应失败。
+- [x] **3. 实现：** 同一次检测复用页面，最多 30 次网络请求 / 60 秒，自动发现样本限同源公开链接；用户样本允许确认后的正常重定向。目标两作品各两章，每章验证有序列表及代表性正文解码。候选正文完全一致按优先级选择；差异用稳定页面身份与资源路径判断，临时签名差异不单独制造歧义。版本/URL revision 轻量验证，连续 2 次结构不匹配标记需重新检测；网络或单图错误不清除绑定。
+- [x] **4. 验证通过：** 相同测试全通过；补充取消时数据库无半成品、编辑 URL 后旧绑定不沿用的断言。
+- [x] **5. 提交：** `feat: detect custom sources and reuse verified bindings`。
 
 ## Task 6: WebKit 源访问与渲染上下文
 

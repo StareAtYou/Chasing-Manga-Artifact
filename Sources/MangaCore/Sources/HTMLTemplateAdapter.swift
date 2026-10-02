@@ -77,7 +77,7 @@ public struct HTMLTemplateAdapter: SourceAdapter {
                 let name = resource.lastPathComponent.lowercased()
                 guard !["loading", "placeholder", "advert", "banner"].contains(where: name.contains) else { continue }
                 var identity = URLComponents(url: resource, resolvingAgainstBaseURL: false)!
-                identity.query = nil; identity.fragment = nil
+                identity.queryItems = identity.queryItems?.filter { !["sign", "signature", "token", "expires", "expiry", "key"].contains($0.name.lowercased()) }; identity.fragment = nil
                 let explicit = try image.attr("data-page-id")
                 let external = explicit.isEmpty ? (identity.string ?? resource.path) : explicit
                 guard seen.insert(external).inserted else { continue }

@@ -37,6 +37,25 @@ public actor LibraryStore {
             try saveRecord(kind: "source", key: source.id.key, value: source); return true
         }
     }
+    public func beginDetection(sourceID: SourceID) throws -> UUID {
+        let id = UUID(); try saveRecord(kind: "detection-generation", key: sourceID.key, value: id); return id
+    }
+    public func commitDetection(binding: ParserBinding, sourceID: SourceID, expectedRevision: Int, works: [DetectedWork], generation: UUID) throws -> Bool {
+        try Task.checkCancellation()
+        guard works.allSatisfy({ item in item.work.id.sourceID == sourceID && item.chapters.allSatisfy { $0.id.sourceWorkID == item.work.id } }) else { throw MangaError.storage("检测结果来源不一致") }
+        return try db.transaction {
+            guard var source = try self.source(id: sourceID), source.enabled, !source.removed, source.revision == expectedRevision else { return false }
+            guard try record(kind: "detection-generation", key: sourceID.key, as: UUID.self) == generation else { return false }
+            source.binding = binding; source.capabilities.formUnion(.readable)
+            try saveRecord(kind: "source", key: sourceID.key, value: source)
+            for item in works {
+                try saveRecord(kind: "sourceWork", key: item.work.id.key, parent: sourceID.key, value: item.work)
+                for chapter in item.chapters { try saveRecord(kind: "chapter", key: chapter.id.key, parent: item.work.id.key, value: chapter) }
+                if !item.chapters.isEmpty { try saveRecord(kind: "directory", key: item.work.id.key, value: item.chapters.sorted { $0.ordinal < $1.ordinal }) }
+            }
+            return true
+        }
+    }
     public func remove(sourceID: SourceID) throws {
         guard var source = try source(id: sourceID) else { return }
         source.removed = true; source.enabled = false; source.revision += 1; source.binding = nil

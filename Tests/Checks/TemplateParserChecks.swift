@@ -12,6 +12,7 @@ public actor FixtureHTTPClient: HTTPClient {
     public func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
         requests.append(request)
         guard let response = responses[request.url.absoluteString] else { throw MangaError.chapterUnavailable }
+        guard (200..<300).contains(response.statusCode) else { throw MangaError.accessRestricted(response.statusCode) }
         return response
     }
 }
@@ -42,6 +43,13 @@ public let templateParserChecks: [Check] = [
         let pages = try await HTMLTemplateAdapter().pages(chapter: chapter, context: ParserContext(source: Samples.sourceA, client: client))
         try expect(pages.count == 2 && pages.last?.ordinal == 1, "Deduplicate pages and terminate loops")
         try expect(await client.requests.count == 2, "Loop must not trigger extra requests")
+    },
+    Check("TemplateParserTests.semanticImageQueriesRemainDistinct") {
+        let chapter = Samples.chapter(Samples.work())
+        let html = "<main data-manga-reader><img src='/image?id=10&amp;sign=old'><img src='/image?id=11&amp;sign=new'></main>"
+        let client = FixtureHTTPClient([chapter.url.absoluteString: textResponse(html, chapter.url)])
+        let pages = try await HTMLTemplateAdapter().pages(chapter: chapter, context: ParserContext(source: Samples.sourceA, client: client))
+        try expect(pages.count == 2 && pages[0].id != pages[1].id, "Image IDs in query parameters must remain distinct")
     },
     Check("TemplateParserTests.jsonTemplateRequiresKnownSchema") {
         let chapter = Samples.chapter(Samples.work())
