@@ -1,6 +1,10 @@
 import Foundation
 import MangaCore
 extension AppContainer {
+    public func associationChoices(for workID: WorkID) async throws -> [SourceWork] {
+        let associated = Set(try await store.sourceWorks(for: workID).map(\.id))
+        return catalog.filter { !associated.contains($0.id) }.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
     public func chapterTitle(_ id: ChapterID) -> String { historyTitles[id] ?? downloadList.first { $0.chapter.id == id }?.chapter.title ?? "已保存的章节" }
     public func unreadCount(for workID: WorkID) -> Int { updateList.filter { workSourceIDs[workID]?.contains($0.sourceWorkID) == true }.reduce(0) { $0 + $1.newChapters.count } }
     public func resume(_ progress: ReadingProgress) async {

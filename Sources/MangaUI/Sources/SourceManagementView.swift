@@ -39,7 +39,7 @@ struct SourceEditorSheet: View {
         NavigationStack { Form {
             Section("来源信息") { TextField("名称", text: $name); TextField("https://漫画网站", text: $url).textContentType(.URL); Text("输入网站地址，应用会尝试已有解析方式。").font(.caption).foregroundStyle(.secondary) }
             Section("样本链接（可选）") { TextEditor(text: $samples).frame(minHeight: 80); Text("每行一个漫画详情链接。不同作品的样本越充分，检测结果越可靠。").font(.caption).foregroundStyle(.secondary) }
-            if detecting { ProgressView("正在检测作品、章节与正文…"); Button("取消检测") { job?.cancel(); detecting = false } }
+            if detecting { ProgressView("正在检测作品、章节与正文…"); Button("取消检测") { job?.cancel() } }
             else { Button(currentSource == nil ? "添加并检测" : "保存并重新检测") { detect() }.buttonStyle(.borderedProminent) }
             if let localError { Text(localError).foregroundStyle(.red) }
             if let report { DetectionResultView(report: report) }

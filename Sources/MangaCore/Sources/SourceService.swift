@@ -51,17 +51,19 @@ public actor SourceService {
     public func inspectCatalogCapabilities(sourceID: SourceID, searchQuery: String) async throws -> [String: MangaError] {
         try await inspectCatalog(sourceID: sourceID, searchQuery: searchQuery).errors
     }
-    public func inspectCatalog(sourceID: SourceID, searchQuery: String = "一人之下") async throws -> CatalogInspection {
+    public func inspectCatalog(sourceID: SourceID, searchQuery: String? = nil) async throws -> CatalogInspection {
         let source = try await activeSource(sourceID)
         let adapter = try await adapter(for: sourceID); let context = try await context(for: sourceID)
-        var capabilities = source.capabilities.subtracting([.browse, .search]); var errors: [String: MangaError] = [:]; var works: [SourceWork] = []
+        var capabilities = source.capabilities; var errors: [String: MangaError] = [:]; var works: [SourceWork] = []
         do {
             works = try await adapter.browse(context: context).filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
             if !works.isEmpty { capabilities.insert(.browse) } else { errors["browse"] = .parseMismatch("没有取得浏览作品") }
         } catch { errors["browse"] = (error as? MangaError) ?? .networkUnavailable }
         do {
-            let found = try await adapter.search(query: searchQuery, context: context).filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
-            if !found.isEmpty { capabilities.insert(.search) } else { errors["search"] = .parseMismatch("没有取得搜索样本") }
+            let saved = try await store.allSourceWorks().first { $0.id.sourceID == sourceID }
+            let query = searchQuery ?? works.first?.title ?? saved?.title ?? "漫画"
+            let found = try await adapter.search(query: query, context: context).filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
+            if !found.isEmpty { capabilities.insert(.search) } else { errors["search"] = .unsupported("当前样本没有搜索结果，可换作品或稍后重试") }
         } catch { errors["search"] = (error as? MangaError) ?? .networkUnavailable }
         try Task.checkCancellation()
         guard var latest = try await store.source(id: sourceID), latest.revision == source.revision, latest.enabled, !latest.removed else { throw CancellationError() }

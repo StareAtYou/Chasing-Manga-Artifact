@@ -54,6 +54,15 @@ actor RefreshCounter {
     var count = 0
     func refreshed(_ pages: [PageResource]) -> [PageResource] { count += 1; return pages }
 }
+actor KnownTitleCatalogClient: HTTPClient {
+    var empty = false
+    func setEmpty(_ value: Bool) { empty = value }
+    func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
+        let query = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "keyword" }?.value
+        let listing = "<a href='/comic.php?id=7'><h2>本站独有作品</h2></a>"
+        return textResponse(request.url.path == "/" || (query == "本站独有作品" && !empty) ? listing : "<div class='no-results'>没有匹配作品</div>", request.url)
+    }
+}
 actor PriorityCaptureClient: HTTPClient {
     var observed: [RequestPriority] = []
     func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse { observed.append(priority); return textResponse("<div data-manga-reader><img data-page-id='1' src='https://images.test/1.png'></div>", request.url) }
@@ -65,6 +74,24 @@ public let usabilityChecks: [Check] = [
         let client = PriorityCaptureClient(); let service = SourceService(store: store, registry: ParserRegistry(), client: client, verifier: ImageVerifier())
         _ = try await service.pages(chapter: Samples.chapter(Samples.work()), priority: .download)
         try expect(await client.observed.allSatisfy { $0 == .download }, "Adapter reader defaults must not promote background preparation ahead of reading")
+    },
+    Check("UsabilityTests.searchProbeUsesSourceOwnTitle") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db.sqlite")); var source = Samples.sourceA; source.binding = ParserBinding(parserID: "guazi-html"); try await store.save(source: source)
+        let client = KnownTitleCatalogClient(); let service = SourceService(store: store, registry: ParserRegistry(adapters: [GuaziAdapter()]), client: client, verifier: ImageVerifier())
+        _ = try await service.inspectCatalog(sourceID: source.id)
+        try expect(try await store.source(id: source.id)?.capabilities.contains(.search) == true, "Source without 一人之下 must verify search using a work it carries")
+        await client.setEmpty(true); _ = try await service.inspectCatalog(sourceID: source.id)
+        try expect(try await store.source(id: source.id)?.capabilities.contains(.search) == true, "Zero matches does not erase previously verified search capability")
+    },
+    Check("UsabilityTests.manualAssociationOffersAlternateTitleWithoutSearch") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root); let all = try await app.store.allSourceWorks(); let group = try await app.store.workID(for: all[0].id)!
+        var alternate = all[1]; alternate.title = "完全不同的别名"; try await app.store.save(sourceWork: alternate, chapters: try await app.store.chapters(for: alternate.id))
+        var source = try await app.store.source(id: alternate.id.sourceID)!; source.capabilities.remove(.search); try await app.store.save(source: source); try await app.refresh()
+        let choices = try await app.associationChoices(for: group)
+        try expect(choices.contains(where: { $0.id == alternate.id }), "User can select an already-opened readable work regardless of search support or automatic title similarity")
+        await app.updateScheduler.stop()
     },
     Check("UsabilityTests.siteListingsExcludeNavigationAndCoverSuffix") {
         let dm = BuiltinSources.candidates()[2]

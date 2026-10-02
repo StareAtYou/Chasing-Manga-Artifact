@@ -4,7 +4,20 @@ cd "$(dirname "$0")/.."
 MANGA_VERSION="${MANGA_VERSION:-0.2.0}"
 MANGA_OUTPUT="${MANGA_OUTPUT:-$PWD/release}"
 MANGA_ARCH="${MANGA_ARCH:-$(uname -m)}"
-case "$MANGA_ARCH" in arm64|x86_64) ;; *) echo 'Supported architectures: arm64, x86_64' >&2; exit 1;; esac
+if [[ "$MANGA_ARCH" == universal ]]; then
+    MANGA_ARCH=arm64 MANGA_OUTPUT="$MANGA_OUTPUT/.parts/arm64" "$0"
+    MANGA_ARCH=x86_64 MANGA_OUTPUT="$MANGA_OUTPUT/.parts/x86_64" "$0"
+    mkdir -p "$MANGA_OUTPUT"
+    ditto "$MANGA_OUTPUT/.parts/arm64/ChasingManga.app" "$MANGA_OUTPUT/ChasingManga.app"
+    lipo -create "$MANGA_OUTPUT/.parts/arm64/ChasingManga.app/Contents/MacOS/ChasingMangaApp" "$MANGA_OUTPUT/.parts/x86_64/ChasingManga.app/Contents/MacOS/ChasingMangaApp" -output "$MANGA_OUTPUT/ChasingManga.app/Contents/MacOS/ChasingMangaApp"
+    codesign --force --sign - --entitlements Apps/macOS/MangaMac.entitlements "$MANGA_OUTPUT/ChasingManga.app"
+    codesign --verify --deep --strict "$MANGA_OUTPUT/ChasingManga.app"
+    ditto -c -k --sequesterRsrc --keepParent "$MANGA_OUTPUT/ChasingManga.app" "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip"
+    shasum -a 256 "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip" > "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip.sha256"
+    echo "Packaged: $MANGA_OUTPUT/ChasingManga.app (arm64 + x86_64)"
+    exit 0
+fi
+case "$MANGA_ARCH" in arm64|x86_64) ;; *) echo 'Supported architectures: arm64, x86_64, universal' >&2; exit 1;; esac
 swift build --skip-update -c release --product ChasingMangaApp --triple "${MANGA_ARCH}-apple-macosx14.0" --scratch-path ".build/package-$MANGA_ARCH"
 MANGA_BIN_DIR="$(swift build -c release --show-bin-path --triple "${MANGA_ARCH}-apple-macosx14.0" --scratch-path ".build/package-$MANGA_ARCH")"
 MANGA_APP="$MANGA_OUTPUT/ChasingManga.app"
