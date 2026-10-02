@@ -48,13 +48,8 @@ import MangaCore
         }
         let html = try await webView.evaluateJavaScript("document.documentElement.outerHTML") as? String ?? ""
         let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
-        let matching = cookies.filter { cookie in
-            let domain = cookie.domain.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased()
-            let host = url.host?.lowercased() ?? ""
-            return (host == domain || host.hasSuffix("." + domain)) && (!cookie.isSecure || url.scheme == "https") && url.path.hasPrefix(cookie.path) && (cookie.expiresDate.map { $0 > Date() } ?? true)
-        }
-        let headers = HTTPCookie.requestHeaderFields(with: matching)
-        let context = try await contexts.register(sourceID: source.id, originURL: url, headers: headers)
+        let scoped = cookies.map { cookie in ScopedCookie(name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path, secure: cookie.isSecure, expires: cookie.expiresDate, hostOnly: !cookie.domain.hasPrefix(".")) }
+        let context = try await contexts.register(sourceID: source.id, originURL: url, cookies: scoped)
         return RenderedPage(url: url, html: html, accessContextID: context, metadata: metadata)
     }
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {

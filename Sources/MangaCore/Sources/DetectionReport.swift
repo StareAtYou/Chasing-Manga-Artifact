@@ -5,7 +5,8 @@ public struct DetectionCandidate: Sendable, Identifiable {
     public var id: String { binding.parserID }
     public let binding: ParserBinding
     public let works: [DetectedWork]
-    public let previewPages: [URL]
+    public let previewResources: [PageResource]
+    public var previewPages: [URL] { previewResources.map { $0.request.url } }
     public let fingerprint: [String]
 }
 public struct DetectionReport: Sendable {

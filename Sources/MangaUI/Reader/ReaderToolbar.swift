@@ -4,6 +4,11 @@ struct ReaderToolbar: ToolbarContent {
     let model: ReaderModel
     var body: some ToolbarContent {
         ToolbarItemGroup {
+            #if os(macOS)
+            Button { model.stepPages(visualDelta: -1) } label: { Label("向左翻页", systemImage: "chevron.left") }.keyboardShortcut(.leftArrow, modifiers: []).disabled(!model.isReady)
+            Button { model.stepPages(visualDelta: 1) } label: { Label("向右翻页", systemImage: "chevron.right") }.keyboardShortcut(.rightArrow, modifiers: []).disabled(!model.isReady)
+            #endif
+            Text(model.isReady ? "\(model.state?.pages.count ?? 0) 页" : "载入中…").font(.caption).accessibilityIdentifier(model.isReady ? "reader-ready" : "reader-loading")
             Button { model.navigate(-1) } label: { Label("上一章", systemImage: "backward.end") }.disabled(model.directory.first?.id == model.chapterID)
             Menu { ForEach(model.directory) { chapter in Button(chapter.title) { if !model.app.path.isEmpty { model.app.path.removeLast() }; model.app.path.append(.reader(chapter.id)) } } } label: { Label("章节目录", systemImage: "list.bullet") }
             Button { model.navigate(1) } label: { Label("下一章", systemImage: "forward.end") }.disabled(model.directory.last?.id == model.chapterID)

@@ -38,6 +38,7 @@ public struct SourceDetector: Sendable {
         }
     }
     private func detectWithinBudget(source: Source, samples: [URL]) async -> DetectionReport {
+        guard samples.allSatisfy({ SourceScope.contains($0, in: source.baseURL) }) else { return DetectionReport(source: source, status: .needsSamples, error: .unsupported("样本必须属于当前来源的域名和目录，请确认来源地址")) }
         let limitedClient = DetectionHTTPClient(client)
         let context = ParserContext(source: source, client: limitedClient, renderer: renderer)
         var candidates: [DetectionCandidate] = []; var accessError: MangaError?
@@ -47,20 +48,22 @@ public struct SourceDetector: Sendable {
             var urls = Array(Set(samples)).sorted { $0.absoluteString < $1.absoluteString }
             if urls.isEmpty {
                 do {
-                    urls = try await adapter.browse(context: context).map(\.url).filter { WebOrigin($0) == WebOrigin(source.baseURL) }
+                    urls = try await adapter.browse(context: context).map(\.url).filter { SourceScope.contains($0, in: source.baseURL) }
                     hadSamples = hadSamples || !urls.isEmpty
                 } catch let error as MangaError { if Self.isAccessFailure(error) { accessError = error } } catch { }
             }
-            var detected: [DetectedWork] = []; var chapterCount = 0; var fingerprints: [String] = []; var previews: [URL] = []
+            var detected: [DetectedWork] = []; var chapterCount = 0; var fingerprints: [String] = []; var previews: [PageResource] = []
             var twoChaptersPerWork = true
             for url in urls.prefix(4) {
                 do {
                     let work = try await adapter.details(url: url, context: context)
+                    guard work.id.sourceID == source.id, SourceScope.contains(work.url, in: source.baseURL) else { throw MangaError.parseMismatch("作品超出来源范围") }
                     let chapters = try await adapter.chapters(work: work, context: context)
+                    guard chapters.allSatisfy({ $0.id.sourceWorkID == work.id && SourceScope.contains($0.url, in: source.baseURL) }) else { throw MangaError.parseMismatch("章节超出来源范围") }
                     let available = chapters.filter { $0.access == .available }
                     guard let first = available.first else { throw MangaError.parseMismatch("没有公开可读章节") }
                     let chosen = available.count > 1 ? [first, available.last!] : [first]
-                    var workFingerprints: [String] = []; var workPreviews: [URL] = []
+                    var workFingerprints: [String] = []; var workPreviews: [PageResource] = []
                     for chapter in chosen {
                         let pages = try await adapter.pages(chapter: chapter, context: context)
                         guard !pages.isEmpty, Set(pages.map(\.id)).count == pages.count,
@@ -70,7 +73,7 @@ public struct SourceDetector: Sendable {
                         for page in representatives {
                             let response = try await limitedClient.send(page.request, sourceID: source.id, priority: .probe)
                             _ = try verifier.verify(response.data)
-                            workPreviews.append(page.request.url)
+                            workPreviews.append(page)
                         }
                         workFingerprints.append(semanticID(url) + "|" + semanticID(chapter.url) + "|" + pages.map { page in
                             // Only the documented authentication parameters are ephemeral.
@@ -91,7 +94,7 @@ public struct SourceDetector: Sendable {
             if !detected.isEmpty {
                 let level: ValidationLevel = detected.count >= 2 && twoChaptersPerWork ? .verified : .limited
                 let binding = ParserBinding(parserID: adapter.id, version: adapter.version, level: level, sampledWorks: detected.count, sampledChapters: chapterCount)
-                candidates.append(DetectionCandidate(binding: binding, works: detected, previewPages: previews, fingerprint: fingerprints.sorted()))
+                candidates.append(DetectionCandidate(binding: binding, works: detected, previewResources: previews, fingerprint: fingerprints.sorted()))
             }
         }
         if Task.isCancelled { return DetectionReport(source: source, status: .cancelled) }

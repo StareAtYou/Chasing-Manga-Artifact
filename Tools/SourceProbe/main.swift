@@ -4,7 +4,7 @@ import MangaPlatform
 #if os(macOS)
 import AppKit
 #endif
-actor DiagnosticTransport: HTTPTransport {
+actor DiagnosticTransport: ScopedHTTPTransport {
     let transport = URLSessionTransport()
     var responses: [[String: String]] = []
     func load(_ request: URLRequest) async throws -> ResourceResponse {
@@ -14,6 +14,11 @@ actor DiagnosticTransport: HTTPTransport {
             return response
         } catch { responses.append(["host": request.url?.host ?? "", "error": String(describing: (error as? URLError)?.code.rawValue ?? -1)]); throw error }
     }
+    func load(_ request: URLRequest, sourceID: SourceID, contextID: UUID?, contexts: AccessContextStore) async throws -> ResourceResponse {
+        do { let response = try await transport.load(request, sourceID: sourceID, contextID: contextID, contexts: contexts); responses.append(["host": response.finalURL.host ?? "", "status": String(response.statusCode)]); return response }
+        catch { responses.append(["host": request.url?.host ?? "", "error": String(describing: (error as? URLError)?.code.rawValue ?? -1)]); throw error }
+    }
+
 }
 func argument(_ name: String) -> String? { guard let index = CommandLine.arguments.firstIndex(of: name), index + 1 < CommandLine.arguments.count else { return nil }; return CommandLine.arguments[index + 1] }
 guard CommandLine.arguments.contains("--online"), let sourceName = argument("--source"), let urlString = argument("--work-url"), let workURL = URL(string: urlString) else {

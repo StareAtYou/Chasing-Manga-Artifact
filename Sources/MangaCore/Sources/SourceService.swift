@@ -61,8 +61,7 @@ public actor SourceService {
         return errors
     }
     public func setEnabled(_ enabled: Bool, sourceID: SourceID) async throws {
-        guard var source = try await store.source(id: sourceID), !source.removed else { throw MangaError.unsupported("来源不存在") }
-        source.enabled = enabled; try await store.save(source: source)
+        try await store.setSourceEnabled(enabled, id: sourceID)
         if !enabled { generations[sourceID] = UUID() }
     }
     public func remove(sourceID: SourceID) async throws { generations[sourceID] = UUID(); try await store.remove(sourceID: sourceID) }

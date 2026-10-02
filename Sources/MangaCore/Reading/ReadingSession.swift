@@ -21,9 +21,8 @@ public actor ReadingSession {
         try await close(); let token = UUID(); generation = token
         let pages: [PageResource]; var offline: [PageID: URL] = [:]
         if let downloads, let pair = try await downloads.offlineManifest(chapterID: chapter.id), pair.0.state == .completed {
-            let files = try await downloads.offlinePages(chapterID: chapter.id)
             pages = pair.0.pages.sorted { $0.ordinal < $1.ordinal }
-            offline = Dictionary(uniqueKeysWithValues: zip(pages.map(\.id), files))
+            offline = try await downloads.offlineFiles(chapterID: chapter.id)
         } else { pages = try await sources.pages(chapter: chapter) }
         guard !pages.isEmpty else { throw MangaError.parseMismatch("章节没有正文") }
         try Task.checkCancellation(); guard generation == token else { throw CancellationError() }

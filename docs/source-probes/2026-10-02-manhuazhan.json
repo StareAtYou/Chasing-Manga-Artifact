@@ -31,7 +31,7 @@
       "pageCount" : 4
     }
   ],
-  "date" : "2026-10-02T06:22:29Z",
+  "date" : "2026-10-02T07:36:54Z",
   "detail" : "parsed",
   "homepageStatus" : 200,
   "platform" : "Version 15.7.7 (Build 24G720)",
@@ -47,7 +47,7 @@
     },
     {
       "host" : "www.manhuazhan.com",
-      "status" : "500"
+      "status" : "200"
     },
     {
       "host" : "www.manhuazhan.com",
@@ -82,6 +82,6 @@
       "status" : "200"
     }
   ],
-  "searchError" : "来源限制访问（HTTP 500）",
+  "searchError" : "请打开来源页面完成验证",
   "source" : "manhuazhan"
 }

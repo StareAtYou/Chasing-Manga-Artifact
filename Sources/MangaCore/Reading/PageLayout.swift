@@ -9,4 +9,10 @@ public enum PageLayout {
         }
         return result
     }
+    public static func destination(from pageID: PageID, pageIDs: [PageID], mode: ReadingMode, direction: ReadingDirection, visualDelta: Int) -> PageID? {
+        let delta = direction == .rightToLeft ? -visualDelta : visualDelta
+        let groups = mode == .doublePage ? spreads(pageIDs: pageIDs, direction: direction) : pageIDs.map { [$0] }
+        guard let index = groups.firstIndex(where: { $0.contains(pageID) }), groups.indices.contains(index + delta) else { return nil }
+        return pageIDs.first { groups[index + delta].contains($0) }
+    }
 }

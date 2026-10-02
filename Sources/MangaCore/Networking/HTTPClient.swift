@@ -6,6 +6,9 @@ public protocol HTTPClient: Sendable {
 public protocol HTTPTransport: Sendable {
     func load(_ request: URLRequest) async throws -> ResourceResponse
 }
+public protocol ScopedHTTPTransport: HTTPTransport {
+    func load(_ request: URLRequest, sourceID: SourceID, contextID: UUID?, contexts: AccessContextStore) async throws -> ResourceResponse
+}
 public protocol RequestSleeper: Sendable {
     func sleep(seconds: Double) async throws
 }
@@ -25,21 +28,28 @@ public enum RedirectPolicy {
     }
 }
 private final class SafeRedirectDelegate: NSObject, URLSessionTaskDelegate, Sendable {
+    let scope: (SourceID, UUID?, AccessContextStore)?
+    init(scope: (SourceID, UUID?, AccessContextStore)? = nil) { self.scope = scope }
     func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
         guard let original = response.url else { completionHandler(nil); return }
-        completionHandler(RedirectPolicy.sanitize(request, from: original))
+        if let (sourceID, id, contexts) = scope { Task { completionHandler(await contexts.redirected(request, from: original, sourceID: sourceID, contextID: id)) } }
+        else { var safe = RedirectPolicy.sanitize(request, from: original); safe.setValue(nil, forHTTPHeaderField: "Cookie"); completionHandler(safe) }
     }
 }
-public final class URLSessionTransport: HTTPTransport, Sendable {
+public final class URLSessionTransport: ScopedHTTPTransport, Sendable {
     private let session: URLSession
     public init() {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil
         configuration.httpShouldSetCookies = false; configuration.timeoutIntervalForRequest = 12
-        session = URLSession(configuration: configuration, delegate: SafeRedirectDelegate(), delegateQueue: nil)
+        session = URLSession(configuration: configuration)
     }
-    public func load(_ request: URLRequest) async throws -> ResourceResponse {
-        let (data, response) = try await session.data(for: request)
+    public func load(_ request: URLRequest) async throws -> ResourceResponse { try await load(request, delegate: SafeRedirectDelegate()) }
+    public func load(_ request: URLRequest, sourceID: SourceID, contextID: UUID?, contexts: AccessContextStore) async throws -> ResourceResponse {
+        try await load(request, delegate: SafeRedirectDelegate(scope: (sourceID, contextID, contexts)))
+    }
+    private func load(_ request: URLRequest, delegate: SafeRedirectDelegate) async throws -> ResourceResponse {
+        let (data, response) = try await session.data(for: request, delegate: delegate)
         guard let http = response as? HTTPURLResponse, let url = http.url else { throw MangaError.networkUnavailable }
         let headers = Dictionary(http.allHeaderFields.map { (String(describing: $0.key), String(describing: $0.value)) }, uniquingKeysWith: { _, last in last })
         return ResourceResponse(data: data, finalURL: url, statusCode: http.statusCode, headers: headers)
@@ -68,14 +78,17 @@ public struct URLSessionHTTPClient: HTTPClient {
         request.httpMethod = resource.method?.rawValue ?? "GET"; request.httpBody = resource.body
         request.allHTTPHeaderFields = resource.headers
         if let referer = resource.referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
-        for (key, value) in await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url) { request.setValue(value, forHTTPHeaderField: key) }
+        let initialRequest = request
         for attempt in 0...2 {
+            request = initialRequest
+            for (key, value) in await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url) { request.setValue(value, forHTTPHeaderField: key) }
             try Task.checkCancellation()
             let lease = try await scheduler.acquire(sourceID: sourceID, priority: priority)
             let response: ResourceResponse
             do {
                 try Task.checkCancellation()
-                response = try await transport.load(request)
+                if let scoped = transport as? any ScopedHTTPTransport { response = try await scoped.load(request, sourceID: sourceID, contextID: resource.accessContextID, contexts: contexts) }
+                else { response = try await transport.load(request) }
                 await scheduler.release(lease)
             } catch {
                 await scheduler.release(lease)

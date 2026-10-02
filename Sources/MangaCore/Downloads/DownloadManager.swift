@@ -50,7 +50,10 @@ public actor DownloadManager {
             task.state = .running; task.error = nil; try await save(task, manifest)
             try FileManager.default.createDirectory(at: folder(id), withIntermediateDirectories: true)
             if let refresh { task.pages = try await refresh(task.chapter); try validatePages(task.pages, chapter: task.chapter) }
-            let identities = Set(task.pages.map(\.id)); manifest.entries = manifest.entries.filter { identities.contains($0.pageID) && valid($0, taskID: id) }
+            let identities = Set(task.pages.map(\.id)); manifest.entries = manifest.entries.filter { identities.contains($0.pageID) && valid($0, taskID: id) }.map { entry in
+                let ordinal = task.pages.first { $0.id == entry.pageID }!.ordinal
+                return OfflineEntry(pageID: entry.pageID, ordinal: ordinal, filename: entry.filename, digest: entry.digest, bytes: entry.bytes)
+            }
             for page in task.pages.sorted(by: { $0.ordinal < $1.ordinal }) {
                 try stillCurrent(id, generation)
                 if let source = try await store.source(id: task.chapter.id.sourceWorkID.sourceID), !source.enabled || source.removed { throw MangaError.unsupported("来源已停用或删除") }
@@ -116,8 +119,13 @@ public actor DownloadManager {
         guard let task = try await tasks().first(where: { $0.chapter.id == chapterID && $0.state != .cancelled }), let manifest = try await store.offlineManifest(taskID: task.id) else { return nil }
         return (task, manifest)
     }
-    public func offlinePages(chapterID: ChapterID) async throws -> [URL] {
+    public func offlineFiles(chapterID: ChapterID) async throws -> [PageID: URL] {
         guard let (task, manifest) = try await offlineManifest(chapterID: chapterID), task.state == .completed, manifest.entries.count == task.pages.count, Set(manifest.entries.map(\.pageID)) == Set(task.pages.map(\.id)), manifest.entries.allSatisfy({ valid($0, taskID: task.id) }) else { throw MangaError.invalidImage }
-        return manifest.entries.sorted { $0.ordinal < $1.ordinal }.map { folder(task.id).appendingPathComponent($0.filename) }
+        return Dictionary(uniqueKeysWithValues: manifest.entries.map { ($0.pageID, folder(task.id).appendingPathComponent($0.filename)) })
+    }
+    public func offlinePages(chapterID: ChapterID) async throws -> [URL] {
+        let files = try await offlineFiles(chapterID: chapterID)
+        guard let (task, _) = try await offlineManifest(chapterID: chapterID) else { throw MangaError.invalidImage }
+        return try task.pages.sorted { $0.ordinal < $1.ordinal }.map { guard let file = files[$0.id] else { throw MangaError.invalidImage }; return file }
     }
 }

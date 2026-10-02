@@ -67,6 +67,21 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     }
     public func perform(_ action: () async throws -> Void) async { do { try await action() } catch is CancellationError { } catch { message = error.localizedDescription } }
     public func open(_ work: Work) async { await perform { path.append(try await navigation.open(workID: work.id)) } }
+    public var validatedWorks: [SourceWork] {
+        catalog.filter { work in sourceList.contains { $0.id == work.id.sourceID && $0.enabled && $0.capabilities.contains(.readable) } }
+    }
+    public func openWorkURL(_ url: URL, sourceID: SourceID) async {
+        await perform {
+            guard let source = try await store.source(id: sourceID), SourceScope.contains(url, in: source.baseURL) else { throw MangaError.invalidURL }
+            let work = try await sources.details(url: url, sourceID: sourceID)
+            await select(work)
+        }
+    }
+    public func previewFile(report: DetectionReport, candidate: DetectionCandidate, page: PageResource) async throws -> URL {
+        let id = PageID(chapterID: page.id.chapterID, externalID: "preview:" + report.detectionID.uuidString + ":" + candidate.id + ":" + page.id.externalID)
+        let preview = PageResource(id: id, ordinal: page.ordinal, request: page.request, expiresAt: page.expiresAt)
+        return try await images.file(for: preview, sourceID: report.sourceID)
+    }
     public func select(_ result: SourceWork) async { await perform {
         let work = try await sources.details(url: result.url, sourceID: result.id.sourceID); let chapters = try await sources.chapters(work: work)
         try await store.save(sourceWork: work, chapters: chapters); let grouped = try await store.createWork(from: work.id, onShelf: false)

@@ -23,10 +23,21 @@ public actor LibraryStore {
         var source = source
         source.baseURL = try canonicalSourceURL(source.baseURL)
         if try sources().contains(where: { $0.id != source.id && $0.baseURL == source.baseURL }) { throw MangaError.storage("该来源已经添加") }
-        if let old = try self.source(id: source.id), old.baseURL != source.baseURL {
-            source.revision = old.revision + 1; source.binding = nil; source.capabilities = []
+        if let old = try self.source(id: source.id) {
+            guard old.revision == source.revision, !old.removed else { throw MangaError.storage("来源已经修改，请重新打开编辑页") }
+            if old.baseURL != source.baseURL { source.revision = old.revision + 1; source.binding = nil; source.capabilities = [] }
         }
         try saveRecord(kind: "source", key: source.id.key, value: source)
+    }
+    public func editSource(id: SourceID, name: String, baseURL: URL, expectedRevision: Int) throws -> Source {
+        guard var current = try source(id: id), current.revision == expectedRevision, !current.removed else { throw MangaError.storage("来源已经修改，请重新打开编辑页") }
+        current.name = name; current.baseURL = baseURL
+        try save(source: current)
+        return try source(id: id)!
+    }
+    public func setSourceEnabled(_ enabled: Bool, id: SourceID) throws {
+        guard var current = try source(id: id), !current.removed else { throw MangaError.unsupported("来源不存在") }
+        if current.enabled != enabled { current.enabled = enabled; current.revision += 1; try saveRecord(kind: "source", key: id.key, value: current) }
     }
     public func source(id: SourceID) throws -> Source? { try record(kind: "source", key: id.key, as: Source.self) }
     public func sources() throws -> [Source] { try records(kind: "source", as: Source.self).filter { !$0.removed } }

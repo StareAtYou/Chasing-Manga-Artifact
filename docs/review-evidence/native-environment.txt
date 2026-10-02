@@ -1,0 +1,9 @@
+2026-10-02 final verification, exit codes observed locally.
+swift build --target MangaUI: exit 0, Build of target MangaUI complete (0.14s).
+git diff --check: exit 0, no output.
+plutil -lint project.pbxproj/macOS Info.plist/iOS Info.plist: exit 0, all OK.
+xcodebuild MangaMac build CODE_SIGNING_ALLOWED=NO: exit 1.
+xcodebuild MangaIOS generic/platform=iOS Simulator build CODE_SIGNING_ALLOWED=NO: exit 1.
+Both: xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance.
+swift test: exit 1. Native tests require full Xcode with Swift Testing; use swift run MangaChecks on Command Line Tools.
+Native XCTest / iOS device / signed sandbox / remote CI: not executed.

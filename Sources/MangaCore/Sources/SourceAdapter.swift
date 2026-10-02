@@ -5,7 +5,10 @@ public struct ParserContext: Sendable {
     public let renderer: (any PageRenderer)?
     public init(source: Source, client: any HTTPClient, renderer: (any PageRenderer)? = nil) { self.source = source; self.client = client; self.renderer = renderer }
     public func text(_ url: URL, priority: RequestPriority = .reading) async throws -> String {
-        try await client.send(ResourceRequest(url: url), sourceID: source.id, priority: priority).text
+        guard SourceScope.contains(url, in: source.baseURL) else { throw MangaError.invalidURL }
+        let response = try await client.send(ResourceRequest(url: url), sourceID: source.id, priority: priority)
+        guard SourceScope.contains(response.finalURL, in: source.baseURL) else { throw MangaError.unsupported("页面跳转到了其他来源，请确认并修改来源地址后重试") }
+        return response.text
     }
 }
 public protocol SourceAdapter: Sendable {

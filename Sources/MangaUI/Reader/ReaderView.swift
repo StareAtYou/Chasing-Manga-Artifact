@@ -2,6 +2,7 @@ import SwiftUI
 import Observation
 import MangaCore
 import MangaPlatform
+struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; let fraction: Double }
 @MainActor @Observable final class ReaderModel {
     let app: AppContainer
     let chapterID: ChapterID
@@ -10,6 +11,16 @@ import MangaPlatform
     var error: String?
     var directory: [Chapter] = []
     var restoring = true
+    var scrollRequest: ReaderScrollRequest?
+    var readyPages = Set<PageID>()
+    var isReady: Bool { !restoring && state != nil }
+    func requestScroll(pageID: PageID, fraction: Double = 0) { restoring = true; scrollRequest = ReaderScrollRequest(pageID: pageID, fraction: fraction) }
+    func pageReady(_ pageID: PageID) { readyPages.insert(pageID) }
+    func stepPages(visualDelta: Int) {
+        guard !restoring, let state, let next = PageLayout.destination(from: state.progress.pageID, pageIDs: state.pages.map(\.id), mode: state.preferences.mode, direction: state.preferences.direction, visualDelta: visualDelta) else { return }
+        position(next, fraction: 0, mode: state.preferences.mode)
+        if state.preferences.mode == .scroll { requestScroll(pageID: next) }
+    }
     init(app: AppContainer, chapterID: ChapterID) { self.app = app; self.chapterID = chapterID; session = ReadingSession(store: app.store, sources: app.sources, downloads: app.downloads) }
     func load() async {
         do {
@@ -23,10 +34,12 @@ import MangaPlatform
     }
     func position(_ id: PageID, fraction: Double, mode: ReadingMode) {
         guard !restoring, state?.preferences.mode == mode else { return }
+        let moved = state?.progress.pageID != id
         state?.progress = ReadingProgress(chapterID: chapterID, pageID: id, fraction: fraction)
+        if mode != .scroll && moved { restoring = true }
         Task { await app.perform { try await session.recordPosition(pageID: id, fraction: fraction) }; if let state, let index = state.pages.firstIndex(where: { $0.id == id }), state.offlineFiles.isEmpty { await app.images.prefetch(Array(state.pages.dropFirst(index + 1).prefix(3)), sourceID: state.sourceID) } }
     }
-    func mode(_ value: ReadingMode) async { restoring = true; await app.perform { try await session.changeMode(value); state = await session.state } }
+    func mode(_ value: ReadingMode) async { guard state?.preferences.mode != value else { return }; restoring = true; await app.perform { try await session.changeMode(value); state = await session.state } }
     func direction(_ value: ReadingDirection) async { await app.perform { try await session.changeDirection(value); state = await session.state } }
     func background(_ value: AppTheme) async { await app.perform { try await session.changeBackground(value); state = await session.state } }
     func close() async { await app.perform { try await session.close(); try await app.refresh() }; await app.images.leave(chapterID: chapterID) }
@@ -35,6 +48,7 @@ import MangaPlatform
 public struct ReaderView: View {
     @State private var model: ReaderModel
     @Environment(\.scenePhase) private var scenePhase
+    @FocusState private var readerFocused: Bool
     public init(container: AppContainer, chapterID: ChapterID) { _model = State(initialValue: ReaderModel(app: container, chapterID: chapterID)) }
     public var body: some View {
         Group {
@@ -43,15 +57,17 @@ public struct ReaderView: View {
                     .id(state.preferences.mode).background(state.preferences.background == .dark ? Color.black : state.preferences.background == .light ? Color.white : Color.primary.opacity(0.05))
             } else if let error = model.error { ContentUnavailableView { Label("无法打开章节", systemImage: "exclamationmark.triangle") } description: { Text(error) } actions: { Button("重试") { Task { await model.load() } } } }
             else { ProgressView("读取章节…") }
-        }.accessibilityIdentifier("reader").navigationTitle(model.state?.chapter.title ?? "阅读").toolbar { ReaderToolbar(model: model) }
+        }.navigationTitle(model.state?.chapter.title ?? "阅读").toolbar { ReaderToolbar(model: model) }
             .task { await model.load() }.onDisappear { Task { await model.close() } }
             .onChange(of: scenePhase) { _, value in if value != .active, let state = model.state { Task { try? await model.app.store.save(progress: state.progress) } } }
             #if os(macOS)
-            .focusable().onKeyPress(.leftArrow) { pageStep(model.state?.preferences.direction == .rightToLeft ? 1 : -1); return .handled }
-            .onKeyPress(.rightArrow) { pageStep(model.state?.preferences.direction == .rightToLeft ? -1 : 1); return .handled }
+            .focusable().focused($readerFocused).defaultFocus($readerFocused, true)
+            .onChange(of: model.isReady) { _, ready in if ready { readerFocused = true } }
+            .onKeyPress(.leftArrow) { model.stepPages(visualDelta: -1); return .handled }
+            .onKeyPress(.rightArrow) { model.stepPages(visualDelta: 1); return .handled }
             #endif
     }
-    private func pageStep(_ delta: Int) { guard let state = model.state, let index = state.pages.firstIndex(where: { $0.id == state.progress.pageID }), state.pages.indices.contains(index + delta) else { return }; model.position(state.pages[index + delta].id, fraction: 0, mode: state.preferences.mode) }
+
 }
 struct ComicPageView: View {
     let model: ReaderModel
@@ -79,8 +95,8 @@ struct ComicPageView: View {
                 let metadata = try await Task.detached { try ImageVerifier().verify(Data(contentsOf: file)) }.value
                 let decoded = try await model.app.images.tiles(file: file, pageID: page.id, viewport: PixelRect(x: 0, y: 0, width: metadata.width, height: metadata.height), targetWidth: min(2048, max(1, Int(width * 2))))
                 try Task.checkCancellation(); aspect = Double(metadata.height) / Double(metadata.width); tiles = decoded; failure = nil
-                await model.session.recordFailure(pageID: page.id, error: nil); ready()
-            } catch is CancellationError { } catch { failure = error.localizedDescription; await model.session.recordFailure(pageID: page.id, error: (error as? MangaError) ?? .invalidImage); ready() }
+                await model.session.recordFailure(pageID: page.id, error: nil); model.pageReady(page.id); ready()
+            } catch is CancellationError { } catch { failure = error.localizedDescription; await model.session.recordFailure(pageID: page.id, error: (error as? MangaError) ?? .invalidImage); model.pageReady(page.id); ready() }
         }
     }
 }
