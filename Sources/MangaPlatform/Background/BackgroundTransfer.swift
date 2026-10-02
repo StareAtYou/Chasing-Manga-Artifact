@@ -47,9 +47,11 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
     private let contexts: AccessContextStore
     private let scheduler: RequestScheduler
     private let recoveryDirectory: URL
+    private let foreground: URLSessionHTTPClient
     private let finishEvents: @Sendable () -> Void
     public init(root: URL, contexts: AccessContextStore, scheduler: RequestScheduler, finishEvents: @escaping @Sendable () -> Void = {}) throws {
         self.contexts = contexts; self.scheduler = scheduler; self.finishEvents = finishEvents
+        foreground = URLSessionHTTPClient(scheduler: scheduler, contexts: contexts)
         recoveryDirectory = root.appendingPathComponent("transfers", isDirectory: true)
         try FileManager.default.createDirectory(at: recoveryDirectory, withIntermediateDirectories: true)
         super.init()
@@ -63,6 +65,16 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
     }
     public func download(_ resource: ResourceRequest, sourceID: SourceID, taskID: UUID, to: URL) async throws -> TransferResult {
+        let scoped = await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url)
+        let publicHeaders = Set(["accept", "accept-language", "accept-encoding", "user-agent", "referer", "content-type", "x-requested-with"])
+        let credentialed = resource.body != nil || resource.method == .post || !scoped.isEmpty || resource.headers.keys.contains { !publicHeaders.contains($0.lowercased()) }
+        // Foundation background sessions always follow redirects and skip the redirect delegate.
+        // Credentialed requests use the controlled foreground transport instead.
+        if credentialed {
+            let response = try await foreground.send(resource, sourceID: sourceID, priority: .download)
+            try Task.checkCancellation(); try response.data.write(to: to, options: .atomic)
+            return TransferResult(file: to, statusCode: response.statusCode, bytes: response.data.count)
+        }
         let pageKey = to.lastPathComponent.components(separatedBy: ".partial.")[0]
         let identity = TransferIdentity(taskID: taskID, pageKey: pageKey, destination: to)
         if let cached = try takeCompletion(identity) { return cached }

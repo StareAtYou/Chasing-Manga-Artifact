@@ -220,11 +220,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `UpdateService.check(sourceWorkIDs: [SourceWorkID]) async -> [UpdateResult]`、`setFollowed(_: Bool, sourceWorkID: SourceWorkID) async throws`；store 保存 UpdateObservation、已通知批次。在 Core 的 UpdateModels 定义 `NotificationDelivering.notify(workID: WorkID, chapters: [Chapter]) async throws`，Platform 实现；`UpdateScheduler.onAppActive()`、`scheduleNext()` 在 MainActor 调用，平台实现按系统机制运行。
 
-- [ ] **1. 写失败测试：** `firstCheckCreatesBaseline()` 断言首次新增数为 0；`newChaptersNotifyOnce()` 验证重试无重复通知；`emptyResponsePreservesBaseline()` 验证空目录不删除基线；`permissionDeniedStillUpdatesList()` 验证提醒失败不丢更新；`unfollowedSourceIsNotChecked()` 验证关注范围。
-- [ ] **2. 验证失败：** `swift test --filter UpdateServiceTests` 应失败。
-- [ ] **3. 实现：** 差分使用稳定章节 ID；加入书架关注当前源，多源独立检查。通知默认关闭、按作品和检查批次合并。iOS 注册 BGAppRefreshTask 并处理过期取消；macOS 仅应用运行时检查，默认 30 分钟且可手动刷新；重新激活避免重叠检查。不安装常驻服务。
+- [x] **1. 写失败测试：** `firstCheckCreatesBaseline()` 断言首次新增数为 0；`newChaptersNotifyOnce()` 验证重试无重复通知；`emptyResponsePreservesBaseline()` 验证空目录不删除基线；`permissionDeniedStillUpdatesList()` 验证提醒失败不丢更新；`unfollowedSourceIsNotChecked()` 验证关注范围。
+- [x] **2. 验证失败：** `swift test --filter UpdateServiceTests` 应失败。
+- [x] **3. 实现：** 差分使用稳定章节 ID；加入书架关注当前源，多源独立检查。通知默认关闭、按作品和检查批次合并。iOS 注册 BGAppRefreshTask 并处理过期取消；macOS 仅应用运行时检查，默认 30 分钟且可手动刷新；重新激活避免重叠检查。不安装常驻服务。
 - [ ] **4. 验证通过：** 测试全通过；平台权限拒绝/允许与后台过期在任务 17 验证。
-- [ ] **5. 提交：** `feat: track new chapters and deliver local update reminders`。
+- [x] **5. 提交：** `feat: track new chapters and deliver local update reminders`。
 
 ## Task 14: 双平台导航、资料页面和源管理
 
