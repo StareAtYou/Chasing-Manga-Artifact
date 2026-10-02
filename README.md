@@ -44,4 +44,4 @@ swift build --target MangaUI
 
 ## 开源
 
-代码采用 [MIT](LICENSE)；网站漫画内容不随本项目授权或分发。依赖许可见 [第三方声明](THIRD_PARTY_NOTICES.md)，解析器贡献规范见 [CONTRIBUTING](CONTRIBUTING.md)。本地已具备开源工程结构，尚未发布远程仓库或上架。
+代码采用 [MIT](LICENSE)；网站漫画内容不随本项目授权或分发。依赖许可见 [第三方声明](THIRD_PARTY_NOTICES.md)，解析器贡献规范见 [CONTRIBUTING](CONTRIBUTING.md)。源码发布到本项目远程仓库；设备专用安装包、个人签名材料和应用资料保留在本地。尚未上架 App Store。

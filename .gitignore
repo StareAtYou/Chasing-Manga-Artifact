@@ -9,3 +9,30 @@ xcuserdata/
 .tools/
 
 release/
+
+# Local delivery, signing credentials and application data
+Deliverables/
+*.ipa
+*.mobileprovision
+*.provisionprofile
+*.p12
+*.pfx
+*.p8
+*.pem
+*.key
+*.cer
+*.certSigningRequest
+*.xcarchive/
+*.dSYM/
+ExportOptions*.plist
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.log
