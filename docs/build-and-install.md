@@ -5,7 +5,8 @@
 - macOS 14+ / iOS 17+ 是运行最低版本。
 - 双端 Xcode 工程需要完整 Xcode 16.3+、Swift 6.1+、首次解析 SwiftSoup 依赖的网络。
 - macOS 单独包装可使用带 macOS SDK 的 Swift Command Line Tools，已在 Swift 6.2.4 上验证。
-- 当前机器只有 Command Line Tools；macOS 普通 Release 应用已构建并运行验证。iOS SDK、原生测试运行时和设备验收仍缺失。
+- 已在 macOS 15.7.7 上安装 Apple 官方 Xcode 16.4（Swift 6.1.2 / iOS 18.5 SDK），iOS 原生 Release 编译通过；连接的 iPhone 运行 iOS 18.5，已启用开发者模式。
+- 两个设备的系统版本保持不变，不要求升级系统。Apple 平台下载服务当前返回初始化错误，模拟器运行时尚未安装；真机开发签名、安装和启动已成功，交互测试范围见 [iOS 交付记录](ios-delivery.md)。
 
 安装完整 Xcode，打开一次完成组件安装。在 Xcode > Settings > Locations 选择其 Command Line Tools。`scripts/check-environment.sh` 会检查完整 Xcode、Swift、XcodeGen，缺失时退出非 0；它不会安装软件或改变系统配置。打开已提交工程无需 XcodeGen；只缺 XcodeGen 时仍可用 Xcode 编译。
 
@@ -46,6 +47,21 @@ xcodebuild -project ChasingManga.xcodeproj -scheme MangaMac -destination 'platfo
 ```sh
 xcodebuild -project ChasingManga.xcodeproj -scheme MangaIOS -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO
 ```
+
+### 生成设备专用 IPA
+
+先在 Xcode 中将 `MangaIOS` 的 Team 设为自己的开发团队，让 Xcode 注册已连接设备并创建开发描述文件。随后运行：
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode_16.4.app/Contents/Developer \
+DEVELOPMENT_TEAM=自己的TeamID \
+MANGA_DEVICE_UDID=自己的设备UDID \
+MANGA_INSTALL=1 scripts/package-ios.sh
+```
+
+脚本使用原生设备 SDK 构建 Release，验证代码签名、描述文件有效期和目标设备授权，然后生成 `release/ios/ChasingManga-0.2.0-iOS.ipa`、SHA-256 和不含设备标识的 `package-info.json`。没有有效签名或设备授权时停止，不生成未签名安装包。`MANGA_INSTALL=1` 还会通过 USB 安装并尝试启动应用；省略时只打包。完整构建日志保留在本机 `release/ios/build.log`，可能包含签名和设备信息，请勿公开。
+
+IPA 只适用于描述文件授权的设备。免费 Personal Team 的开发描述文件通常有效 **7 天**，到期需重新签名安装；签名信息中的实际有效期为准。[Apple 个人账户说明](https://developer.apple.com/help/account/basics/about-your-developer-account)。该流程不会发布 App Store/TestFlight，也不会升级 Mac 或手机系统。
 
 ## 工程生成与测试
 

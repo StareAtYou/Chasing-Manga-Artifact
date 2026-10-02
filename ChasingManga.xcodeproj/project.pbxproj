@@ -7,13 +7,28 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00ED940850F8BEA43860C066 /* AppIcon40x40.png in Resources */ = {isa = PBXBuildFile; fileRef = 15AFF690EA3DEF8346803BEE /* AppIcon40x40.png */; };
+		036A3B5FC824906025BD6AFC /* AppIcon29x29.png in Resources */ = {isa = PBXBuildFile; fileRef = 46C5D48310B9A8409E613747 /* AppIcon29x29.png */; };
+		0A75181427EF227AF13698AC /* AppIcon29x29@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 240926B01804216D131A8C52 /* AppIcon29x29@3x.png */; };
+		100CDEB2C23132069B6C1548 /* AppIcon20x20@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = BFE6FA74FA54053D2D8800BF /* AppIcon20x20@2x.png */; };
 		187B756AEBBF46EB676FE3EB /* MangaFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863F06C4C5548DD350FE79FA /* MangaFlowTests.swift */; };
+		2466C5103D9C8CF2FDBE1B30 /* AppIcon29x29@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9E98D88A3DB1BA5BD6B13549 /* AppIcon29x29@2x.png */; };
 		657FB5CBD6307D6D30DEC425 /* MangaFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863F06C4C5548DD350FE79FA /* MangaFlowTests.swift */; };
+		6F208F9E32FB60EC2F79E67D /* AppIcon20x20.png in Resources */ = {isa = PBXBuildFile; fileRef = 62024EF11202A7067A58E416 /* AppIcon20x20.png */; };
 		73336AB515456F94A8B91A1A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED9427851CE529E12ACC586 /* AppDelegate.swift */; };
+		7700F69456D08D52380872A4 /* AppIcon40x40@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 36BDDD2948559E55AB4C5BD3 /* AppIcon40x40@2x.png */; };
 		85868E3EE7FE38DFF63BEDB9 /* MangaIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42B87FDE79C818016176017 /* MangaIOSApp.swift */; };
+		9BEFE01A15D63AFBB79ABF7C /* AppIcon76x76.png in Resources */ = {isa = PBXBuildFile; fileRef = ED920FA88D4AB2544B1AA555 /* AppIcon76x76.png */; };
 		AC1D23CDECC5DB36F05CFBA4 /* MangaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5656E951B58100DA36FD1195 /* MangaUI */; };
+		B0C15AF94EE3DAF363EEFDF0 /* AppIcon40x40@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 46C460AD1BA6AA0A0BDBDAE7 /* AppIcon40x40@3x.png */; };
+		B7F1724FC491D8FB89AF774C /* AppIcon20x20@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2EF243B6ACB94B87CE161C7B /* AppIcon20x20@3x.png */; };
 		D54BDEB20E3BBAC951448D0A /* MangaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 604C5F34A59AA05A6BDA4541 /* MangaUI */; };
+		DA9F896D882E7C7BE06B1DBB /* AppIcon83.5x83.5@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 90C74E2655272666B476A737 /* AppIcon83.5x83.5@2x.png */; };
 		E6E74F20C588783CD82176E6 /* MangaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12719598AFC5E71C5E08CF5 /* MangaMacApp.swift */; };
+		EE29D45B2445553D65B35328 /* AppIcon60x60@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = DD4E86E01DAFCC9E074B3AD1 /* AppIcon60x60@2x.png */; };
+		EF561226E6917FFBC1484612 /* AppIcon1024.png in Resources */ = {isa = PBXBuildFile; fileRef = 680DEBA8160619C8DA7BF30E /* AppIcon1024.png */; };
+		F110ED0646817784BB0C69C2 /* AppIcon60x60@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = C62A69D69C4CAC76687C3C20 /* AppIcon60x60@3x.png */; };
+		F45B837F0059A4DB358EF77E /* AppIcon76x76@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 7E3AFAC964B42948DB67A902 /* AppIcon76x76@2x.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,16 +49,31 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		15AFF690EA3DEF8346803BEE /* AppIcon40x40.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon40x40.png; sourceTree = "<group>"; };
 		1763C2C9F5B1468DAFFE74EA /* MangaMacUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MangaMacUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		24532548F562E18185C98CC5 /* MangaIOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MangaIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		240926B01804216D131A8C52 /* AppIcon29x29@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon29x29@3x.png"; sourceTree = "<group>"; };
+		24532548F562E18185C98CC5 /* MangaIOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2EF243B6ACB94B87CE161C7B /* AppIcon20x20@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon20x20@3x.png"; sourceTree = "<group>"; };
+		36BDDD2948559E55AB4C5BD3 /* AppIcon40x40@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon40x40@2x.png"; sourceTree = "<group>"; };
+		46C460AD1BA6AA0A0BDBDAE7 /* AppIcon40x40@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon40x40@3x.png"; sourceTree = "<group>"; };
+		46C5D48310B9A8409E613747 /* AppIcon29x29.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon29x29.png; sourceTree = "<group>"; };
 		556D54ACA6A7F7BC5E24CB9F /* Chasing-Manga-Artifact */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Chasing-Manga-Artifact"; path = .; sourceTree = SOURCE_ROOT; };
+		62024EF11202A7067A58E416 /* AppIcon20x20.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon20x20.png; sourceTree = "<group>"; };
+		680DEBA8160619C8DA7BF30E /* AppIcon1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon1024.png; sourceTree = "<group>"; };
 		7D8E8EF0A9823F599F5490EE /* MangaMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MangaMac.entitlements; sourceTree = "<group>"; };
+		7E3AFAC964B42948DB67A902 /* AppIcon76x76@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon76x76@2x.png"; sourceTree = "<group>"; };
 		863F06C4C5548DD350FE79FA /* MangaFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaFlowTests.swift; sourceTree = "<group>"; };
+		90C74E2655272666B476A737 /* AppIcon83.5x83.5@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon83.5x83.5@2x.png"; sourceTree = "<group>"; };
 		91CF1EE4AB70852B82BEDE0A /* MangaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9E98D88A3DB1BA5BD6B13549 /* AppIcon29x29@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon29x29@2x.png"; sourceTree = "<group>"; };
 		A12719598AFC5E71C5E08CF5 /* MangaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaMacApp.swift; sourceTree = "<group>"; };
+		BFE6FA74FA54053D2D8800BF /* AppIcon20x20@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon20x20@2x.png"; sourceTree = "<group>"; };
+		C62A69D69C4CAC76687C3C20 /* AppIcon60x60@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon60x60@3x.png"; sourceTree = "<group>"; };
 		D69FBF6AC2A2408A20F88A4D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DAEDA4D7D513222A8B467FE4 /* MangaIOSUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MangaIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD4E86E01DAFCC9E074B3AD1 /* AppIcon60x60@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon60x60@2x.png"; sourceTree = "<group>"; };
 		DED9427851CE529E12ACC586 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		ED920FA88D4AB2544B1AA555 /* AppIcon76x76.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AppIcon76x76.png; sourceTree = "<group>"; };
 		F31E36BBBAA79D8F59F8463F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F42B87FDE79C818016176017 /* MangaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaIOSApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -112,6 +142,7 @@
 				DED9427851CE529E12ACC586 /* AppDelegate.swift */,
 				D69FBF6AC2A2408A20F88A4D /* Info.plist */,
 				F42B87FDE79C818016176017 /* MangaIOSApp.swift */,
+				D987FCD49538819FE9AE1410 /* Icons */,
 			);
 			path = iOS;
 			sourceTree = "<group>";
@@ -132,6 +163,28 @@
 				863F06C4C5548DD350FE79FA /* MangaFlowTests.swift */,
 			);
 			path = UITests;
+			sourceTree = "<group>";
+		};
+		D987FCD49538819FE9AE1410 /* Icons */ = {
+			isa = PBXGroup;
+			children = (
+				62024EF11202A7067A58E416 /* AppIcon20x20.png */,
+				BFE6FA74FA54053D2D8800BF /* AppIcon20x20@2x.png */,
+				2EF243B6ACB94B87CE161C7B /* AppIcon20x20@3x.png */,
+				46C5D48310B9A8409E613747 /* AppIcon29x29.png */,
+				9E98D88A3DB1BA5BD6B13549 /* AppIcon29x29@2x.png */,
+				240926B01804216D131A8C52 /* AppIcon29x29@3x.png */,
+				15AFF690EA3DEF8346803BEE /* AppIcon40x40.png */,
+				36BDDD2948559E55AB4C5BD3 /* AppIcon40x40@2x.png */,
+				46C460AD1BA6AA0A0BDBDAE7 /* AppIcon40x40@3x.png */,
+				DD4E86E01DAFCC9E074B3AD1 /* AppIcon60x60@2x.png */,
+				C62A69D69C4CAC76687C3C20 /* AppIcon60x60@3x.png */,
+				ED920FA88D4AB2544B1AA555 /* AppIcon76x76.png */,
+				7E3AFAC964B42948DB67A902 /* AppIcon76x76@2x.png */,
+				90C74E2655272666B476A737 /* AppIcon83.5x83.5@2x.png */,
+				680DEBA8160619C8DA7BF30E /* AppIcon1024.png */,
+			);
+			path = Icons;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -160,6 +213,7 @@
 			buildConfigurationList = 1A148D94E0627D0D9F88CC52 /* Build configuration list for PBXNativeTarget "MangaIOS" */;
 			buildPhases = (
 				D1C01C674EF5CE9038A4E9A5 /* Sources */,
+				2B7239A4C785F75B23E804DA /* Resources */,
 				E844F26D0AEB8FFC056306E3 /* Frameworks */,
 			);
 			buildRules = (
@@ -260,6 +314,31 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2B7239A4C785F75B23E804DA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EF561226E6917FFBC1484612 /* AppIcon1024.png in Resources */,
+				6F208F9E32FB60EC2F79E67D /* AppIcon20x20.png in Resources */,
+				100CDEB2C23132069B6C1548 /* AppIcon20x20@2x.png in Resources */,
+				B7F1724FC491D8FB89AF774C /* AppIcon20x20@3x.png in Resources */,
+				036A3B5FC824906025BD6AFC /* AppIcon29x29.png in Resources */,
+				2466C5103D9C8CF2FDBE1B30 /* AppIcon29x29@2x.png in Resources */,
+				0A75181427EF227AF13698AC /* AppIcon29x29@3x.png in Resources */,
+				00ED940850F8BEA43860C066 /* AppIcon40x40.png in Resources */,
+				7700F69456D08D52380872A4 /* AppIcon40x40@2x.png in Resources */,
+				B0C15AF94EE3DAF363EEFDF0 /* AppIcon40x40@3x.png in Resources */,
+				EE29D45B2445553D65B35328 /* AppIcon60x60@2x.png in Resources */,
+				F110ED0646817784BB0C69C2 /* AppIcon60x60@3x.png in Resources */,
+				9BEFE01A15D63AFBB79ABF7C /* AppIcon76x76.png in Resources */,
+				F45B837F0059A4DB358EF77E /* AppIcon76x76@2x.png in Resources */,
+				DA9F896D882E7C7BE06B1DBB /* AppIcon83.5x83.5@2x.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		15FE329793ACE1AFDAE2D7CE /* Sources */ = {

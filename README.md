@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.0 已补齐日常使用流程，并提供可直接运行的 macOS 本地安装包；iOS 工程与共享功能已实现，原生构建/设备验收需要完整 Xcode，当前尚未完成。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.0 已补齐日常使用流程，并提供可直接运行的 macOS 本地安装包；iOS 原生 Release 已使用 Xcode 16.4 / iOS 18.5 SDK 编译通过，并已为当前设备生成签名 IPA、在 iOS 18.5 真机安装并启动。交互验收范围见 [iOS 交付记录](docs/ios-delivery.md)。
 
 ## 功能
 
