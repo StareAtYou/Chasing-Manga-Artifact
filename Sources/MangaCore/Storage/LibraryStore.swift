@@ -114,6 +114,8 @@ public actor LibraryStore {
         }
     }
     public func save(progress: ReadingProgress) throws {
+        try Task.checkCancellation()
+        if let old = try self.progress(for: progress.sourceWorkID), old.updatedAt > progress.updatedAt { return }
         guard progress.pageID.chapterID == progress.chapterID else { throw MangaError.storage("阅读页面与章节不一致") }
         try db.transaction {
             try saveRecord(kind: "progress", key: progress.sourceWorkID.key, value: progress)

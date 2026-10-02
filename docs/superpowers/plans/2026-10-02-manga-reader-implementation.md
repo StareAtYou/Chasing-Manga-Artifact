@@ -244,11 +244,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `ReadingSession.open(chapter: Chapter, preferences: ReaderPreferences) async throws -> ReaderState` 优先离线清单，否则 adapter；`recordPosition(pageID: PageID, fraction: Double)`、`changeMode(_:)`、`changeDirection(_:)`、`close()` 均 async throws。`PageLayout.spreads(pageIDs: [PageID], direction: ReadingDirection) -> [[PageID]]`。ReaderState 保留当前源、章节、页序、位置和失败页。
 
-- [ ] **1. 写失败测试：** `readerModeSwitchRetainsPage()` 验证模式切换当前页不变；`firstAndOddLastPagesStandAlone()` 验证首页单页、奇数末页和 RTL 排列；`scrollFractionRoundTrips()` 验证页内位置；`failedPageKeepsPlaceholder()` 验证错误页保留页序；`sourceSwitchDoesNotOverwriteOldProgress()` 验证跨源需用户确认候选。
-- [ ] **2. 验证失败：** `swift test --filter 'ReadingSessionTests|PageLayoutTests'` 应失败。
-- [ ] **3. 实现：** 滚动懒加载与分页容器使用任务 11 文件/图块，iOS UIKit 与 macOS AppKit 缩放桥接保持手势正确；支持目录、工具栏、页码、章节切换、背景和 macOS 键盘操作。保存节流并在退出刷写；换章取消旧加载，旧异步进度不得覆盖新章。偏好按 Work 保存，进度按 SourceWork 保存。
-- [ ] **4. 验证通过：** 状态测试通过、MangaUI 构建通过；平台触控/鼠标缩放、长图、双页与位置恢复在任务 17 实际验收。
-- [ ] **5. 提交：** `feat: read comics with scroll paging and desktop spreads`。
+- [x] **1. 写失败测试：** `readerModeSwitchRetainsPage()` 验证模式切换当前页不变；`firstAndOddLastPagesStandAlone()` 验证首页单页、奇数末页和 RTL 排列；`scrollFractionRoundTrips()` 验证页内位置；`failedPageKeepsPlaceholder()` 验证错误页保留页序；`sourceSwitchDoesNotOverwriteOldProgress()` 验证跨源需用户确认候选。
+- [x] **2. 验证失败：** `swift test --filter 'ReadingSessionTests|PageLayoutTests'` 应失败。
+- [x] **3. 实现：** 滚动懒加载与分页容器使用任务 11 文件/图块，iOS UIKit 与 macOS AppKit 缩放桥接保持手势正确；支持目录、工具栏、页码、章节切换、背景和 macOS 键盘操作。保存节流并在退出刷写；换章取消旧加载，旧异步进度不得覆盖新章。偏好按 Work 保存，进度按 SourceWork 保存。
+- [x] **4. 验证通过：** 状态测试通过、MangaUI 构建通过；平台触控/鼠标缩放、长图、双页与位置恢复在任务 17 实际验收。
+- [x] **5. 提交：** `feat: read comics with scroll paging and desktop spreads`。
 
 ## Task 16: 可重复生成的双平台工程与应用生命周期
 
