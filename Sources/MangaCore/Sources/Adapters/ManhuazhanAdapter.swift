@@ -6,7 +6,7 @@ public struct ManhuazhanAdapter: SourceAdapter {
     public let capabilities: SourceCapabilities = [.browse, .search, .details, .chapters, .pages]
     public init() { }
     private var base: HTMLTemplateAdapter {
-        var template = HTMLTemplate(); template.title = "h1"; template.chapters = "a[href^='/chapter/']"; template.readerImages = "#ChapterContent img"; template.nextPage = "a[data-chapter-page-next]"
+        var template = HTMLTemplate(); template.title = "h1"; template.cover = ".d-vod-pic img"; template.author = ".d-vod-type p:contains(作者)"; template.summary = ".d-des"; template.chapters = "a[href^='/chapter/']"; template.readerImages = "#ChapterContent img"; template.nextPage = "a[data-chapter-page-next]"
         return HTMLTemplateAdapter(id: id, template: template)
     }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(ResourceRequest(url: context.source.baseURL), context: context) }

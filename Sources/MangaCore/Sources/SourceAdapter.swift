@@ -11,6 +11,11 @@ public struct ParserContext: Sendable {
         return response.text
     }
 }
+public struct PageValidationSample: Sendable {
+    public let totalCount: Int
+    public let pages: [PageResource]
+    public init(totalCount: Int, pages: [PageResource]) { self.totalCount = totalCount; self.pages = pages }
+}
 public protocol SourceAdapter: Sendable {
     var id: String { get }
     var version: Int { get }
@@ -20,8 +25,13 @@ public protocol SourceAdapter: Sendable {
     func details(url: URL, context: ParserContext) async throws -> SourceWork
     func chapters(work: SourceWork, context: ParserContext) async throws -> [Chapter]
     func pages(chapter: Chapter, context: ParserContext) async throws -> [PageResource]
+    func validationPages(chapter: Chapter, context: ParserContext) async throws -> PageValidationSample
 }
 public extension SourceAdapter {
+    func validationPages(chapter: Chapter, context: ParserContext) async throws -> PageValidationSample {
+        let pages = try await pages(chapter: chapter, context: context)
+        return PageValidationSample(totalCount: pages.count, pages: pages)
+    }
     func browse(context: ParserContext) async throws -> [SourceWork] { throw MangaError.unsupported("浏览") }
     func search(query: String, context: ParserContext) async throws -> [SourceWork] { throw MangaError.unsupported("搜索") }
 }

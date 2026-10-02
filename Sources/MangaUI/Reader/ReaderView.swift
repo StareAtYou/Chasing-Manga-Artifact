@@ -10,6 +10,7 @@ struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; l
     var state: ReaderState?
     var error: String?
     var directory: [Chapter] = []
+    @ObservationIgnored private var positionTask: Task<Void, Never>?
     var restoring = true
     var scrollRequest: ReaderScrollRequest?
     var readyPages = Set<PageID>()
@@ -29,7 +30,7 @@ struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; l
             let preferences: ReaderPreferences
             if let workID { preferences = try await app.store.preferences(for: workID) } else { preferences = ReaderPreferences() }
             state = try await session.open(chapter: chapter, preferences: preferences)
-            directory = try await app.store.chapters(for: chapterID.sourceWorkID); error = nil
+            directory = try await app.store.chapters(for: chapterID.sourceWorkID); try await app.updates.markRead(chapterID: chapterID); error = nil
         } catch is CancellationError { } catch { self.error = error.localizedDescription }
     }
     func position(_ id: PageID, fraction: Double, mode: ReadingMode) {
@@ -37,12 +38,13 @@ struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; l
         let moved = state?.progress.pageID != id
         state?.progress = ReadingProgress(chapterID: chapterID, pageID: id, fraction: fraction)
         if mode != .scroll && moved { restoring = true }
-        Task { await app.perform { try await session.recordPosition(pageID: id, fraction: fraction) }; if let state, let index = state.pages.firstIndex(where: { $0.id == id }), state.offlineFiles.isEmpty { await app.images.prefetch(Array(state.pages.dropFirst(index + 1).prefix(3)), sourceID: state.sourceID) } }
+        let previous = positionTask
+        positionTask = Task { await previous?.value; await app.perform { try await session.recordPosition(pageID: id, fraction: fraction) }; if let state, let index = state.pages.firstIndex(where: { $0.id == id }), state.offlineFiles.isEmpty { await app.images.prefetch(Array(state.pages.dropFirst(index + 1).prefix(3)), sourceID: state.sourceID) } }
     }
-    func mode(_ value: ReadingMode) async { guard state?.preferences.mode != value else { return }; restoring = true; await app.perform { try await session.changeMode(value); state = await session.state } }
-    func direction(_ value: ReadingDirection) async { await app.perform { try await session.changeDirection(value); state = await session.state } }
-    func background(_ value: AppTheme) async { await app.perform { try await session.changeBackground(value); state = await session.state } }
-    func close() async { await app.perform { try await session.close(); try await app.refresh() }; await app.images.leave(chapterID: chapterID) }
+    func mode(_ value: ReadingMode) async { guard state?.preferences.mode != value else { return }; restoring = true; await positionTask?.value; await app.perform { try await session.changeMode(value); state = await session.state } }
+    func direction(_ value: ReadingDirection) async { await positionTask?.value; await app.perform { try await session.changeDirection(value); state = await session.state } }
+    func background(_ value: AppTheme) async { await positionTask?.value; await app.perform { try await session.changeBackground(value); state = await session.state } }
+    func close() async { await positionTask?.value; positionTask = nil; await app.perform { try await session.close(); try await app.refresh() }; await app.images.leave(chapterID: chapterID) }
     func navigate(_ delta: Int) { guard let index = directory.firstIndex(where: { $0.id == chapterID }), directory.indices.contains(index + delta) else { return }; if !app.path.isEmpty { app.path.removeLast() }; app.path.append(.reader(directory[index + delta].id)) }
 }
 public struct ReaderView: View {

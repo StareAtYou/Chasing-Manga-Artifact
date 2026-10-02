@@ -5,6 +5,7 @@ public struct DownloadTask: Codable, Sendable, Identifiable {
     public let chapter: Chapter
     public var pages: [PageResource]
     public let sourceSnapshot: Source?
+    public var needsRefresh: Bool? = false
     public var state: DownloadState = .queued
     public var completedPages = 0
     public var bytes = 0

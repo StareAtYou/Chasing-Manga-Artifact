@@ -7,6 +7,9 @@ public struct GuaziAdapter: SourceAdapter {
     private var base: HTMLTemplateAdapter {
         var template = HTMLTemplate()
         template.title = "#cinema-title, .mobile-comic-title"
+        template.cover = ".mobile-comic-cover, .cinema-cover"
+        template.author = ".cinema-strip a[href*=author.php]"
+        template.summary = ".mobile-comic-desc"
         template.chapters = "[data-chapter-list] a[href*='chapter.php?id=']"
         template.readerImages = "img.reading-image"
         template.nextPage = "a[data-page-pagination]"

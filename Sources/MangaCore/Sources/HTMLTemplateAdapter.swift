@@ -2,6 +2,9 @@ import Foundation
 import SwiftSoup
 public struct HTMLTemplate: Codable, Sendable {
     public var title = "[data-manga-title], .manga-title"
+    public var cover = "[data-manga-cover]"
+    public var author = "[data-manga-author]"
+    public var summary = "[data-manga-summary]"
     public var workLinks = "a[data-work-id]"
     public var chapters = "a[data-chapter-id]"
     public var readerImages = "[data-manga-reader] img"
@@ -48,7 +51,15 @@ public struct HTMLTemplateAdapter: SourceAdapter {
         guard !title.isEmpty else { throw MangaError.parseMismatch("作品标题为空") }
         let declared = try element.attr("data-work-id")
         let id = SourceWorkID(sourceID: context.source.id, externalID: declared.isEmpty ? semanticID(url) : declared)
-        return SourceWork(id: id, title: title, url: url, capabilities: capabilities)
+        let image = try doc.select(template.cover).first()
+        let cover = try image.flatMap { element -> URL? in
+            for attribute in ["data-src", "data-original", "src"] { if let url = resolvedWebURL(try element.attr(attribute), relativeTo: url) { return url } }
+            return nil
+        }
+        var author = try doc.select(template.author).first()?.text() ?? ""
+        for prefix in ["作者：", "作者:"] where author.hasPrefix(prefix) { author = String(author.dropFirst(prefix.count)).trimmingCharacters(in: .whitespacesAndNewlines) }
+        let summary = try doc.select(template.summary).first()?.text() ?? ""
+        return SourceWork(id: id, title: title, url: url, coverURL: cover, author: author, summary: summary, capabilities: capabilities)
     }
     public func chapters(work: SourceWork, context: ParserContext) async throws -> [Chapter] {
         let doc = try document(await context.text(work.url, priority: .probe), url: work.url)

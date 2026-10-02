@@ -20,10 +20,11 @@ public struct TiledImageDecoder: Sendable {
               let source = CGImageSourceCreateWithURL(file as CFURL, [kCGImageSourceShouldCache: false] as CFDictionary),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int, width > 0, height > 0 else { throw MangaError.invalidImage }
-        // ImageIO has no public region decode for these formats. Bound the thumbnail first;
-        // never decode the full original long image and crop it to claim bounded memory.
-        let desired = Double(max(width, height)) * min(1, Double(targetWidth) / Double(width))
-        let dimension = min(4096, max(1, Int(min(desired, 4096))))
+        // Bound decoded pixel count, not the longest edge: a narrow webtoon can be
+        // very tall and still fit comfortably. Never fully decode an oversized original.
+        let pixels = Double(width) * Double(height)
+        let factor = min(1, Double(targetWidth) / Double(width), sqrt(Double(8 * 1024 * 1024) / pixels))
+        let dimension = max(1, Int(min(65_536, ceil(Double(max(width, height)) * factor))))
         guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: dimension, kCGImageSourceShouldCacheImmediately: true, kCGImageSourceCreateThumbnailWithTransform: true] as CFDictionary) else { throw MangaError.invalidImage }
         let scale = min(Double(thumbnail.width) / Double(width), Double(thumbnail.height) / Double(height))
         let start = max(0, min(height, viewport.y)); let end = min(height, max(start, viewport.y + min(viewport.height, height)))

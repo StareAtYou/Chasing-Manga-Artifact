@@ -49,7 +49,10 @@ public actor DownloadManager {
             var manifest = try await store.offlineManifest(taskID: id) ?? OfflineManifest(taskID: id, chapterID: task.chapter.id)
             task.state = .running; task.error = nil; try await save(task, manifest)
             try FileManager.default.createDirectory(at: folder(id), withIntermediateDirectories: true)
-            if let refresh { task.pages = try await refresh(task.chapter); try validatePages(task.pages, chapter: task.chapter) }
+            if let refresh, task.needsRefresh != false || task.pages.contains(where: { ($0.expiresAt ?? .distantFuture) <= Date() }) {
+                task.pages = try await refresh(task.chapter); try validatePages(task.pages, chapter: task.chapter)
+            }
+            task.needsRefresh = false
             let identities = Set(task.pages.map(\.id)); manifest.entries = manifest.entries.filter { identities.contains($0.pageID) && valid($0, taskID: id) }.map { entry in
                 let ordinal = task.pages.first { $0.id == entry.pageID }!.ordinal
                 return OfflineEntry(pageID: entry.pageID, ordinal: ordinal, filename: entry.filename, digest: entry.digest, bytes: entry.bytes)
@@ -86,7 +89,7 @@ public actor DownloadManager {
     }
     private func transition(_ id: UUID, to state: DownloadState) async throws {
         guard var task = try await task(id: id) else { return }
-        let old = task.generation; task.generation = UUID(); task.state = state; task.error = nil; task.updatedAt = Date()
+        let old = task.generation; task.generation = UUID(); task.state = state; if state == .queued { task.needsRefresh = true }; task.error = nil; task.updatedAt = Date()
         guard try await store.saveDownload(task: task, manifest: nil, expectedGeneration: old) else { return }
         jobs.removeValue(forKey: id)?.cancel(); tokens.removeValue(forKey: id)
         await schedule()
@@ -110,7 +113,7 @@ public actor DownloadManager {
             let before = manifest.entries.count; manifest.entries = manifest.entries.filter { valid($0, taskID: task.id) }
             task.completedPages = manifest.entries.count; task.bytes = manifest.entries.reduce(0) { $0 + $1.bytes }
             if task.state == .completed && (before != manifest.entries.count || manifest.entries.count != task.pages.count) { task.state = .failed; task.error = .invalidImage }
-            if task.state == .running { task.state = .queued }
+            if task.state == .running { task.state = .queued }; if task.state == .queued { task.needsRefresh = true }
             _ = try await store.saveDownload(task: task, manifest: manifest, expectedGeneration: task.generation)
         }
         await schedule()

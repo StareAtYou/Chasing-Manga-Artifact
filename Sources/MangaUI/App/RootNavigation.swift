@@ -23,7 +23,7 @@ public struct RootNavigation<ReaderContent: View>: View {
     private func stack(_ section: AppSection) -> some View {
         NavigationStack(path: Binding(get: { section == app.section ? app.path : [] }, set: { if section == app.section { app.path = $0 } })) {
             sectionView(section).navigationDestination(for: Route.self) { route in
-                switch route { case .work(let id): WorkDetailView(workID: id); case .chapters(let id): ChapterListView(sourceWorkID: id); case .reader(let id): readerDestination(id) }
+                switch route { case .work(let id): WorkDetailView(workID: id); case .chapters(let id): ChapterListView(sourceWorkID: id); case .reader(let id): readerDestination(id).id(id) }
             }
         }
     }

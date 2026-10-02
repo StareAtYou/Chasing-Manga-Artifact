@@ -40,7 +40,8 @@ public struct DM5Adapter: SourceAdapter {
         }
         return result.reversed().enumerated().map { index, chapter in Chapter(id: chapter.id, title: chapter.title, url: chapter.url, ordinal: index, access: chapter.access) }
     }
-    public func pages(chapter: Chapter, context: ParserContext) async throws -> [PageResource] {
+    private struct ReaderData: Sendable { let count: Int; let parameters: [String: String] }
+    private func readerData(chapter: Chapter, context: ParserContext) async throws -> ReaderData {
         guard chapter.access == .available else { if chapter.access == .login { throw MangaError.requiresLogin }; throw MangaError.chapterUnavailable }
         let html = try await context.text(chapter.url)
         _ = try checked(html)
@@ -50,10 +51,22 @@ public struct DM5Adapter: SourceAdapter {
               let mid = DM5ReaderData.captures(#"DM5_MID\s*=\s*(\d+)"#, in: html)?.first,
               let date = try DM5ReaderData.stringVariable("DM5_VIEWSIGN_DT", in: html), let sign = try DM5ReaderData.stringVariable("DM5_VIEWSIGN", in: html) else { throw MangaError.parseMismatch("缺少公开阅读上下文") }
         let doc = try SwiftSoup.parse(html); let key = try doc.select("#dm5_key").first()?.attr("value") ?? ""
+        return ReaderData(count: count, parameters: ["cid": cid, "key": key, "language": "1", "gtk": "6", "_cid": cid, "_mid": mid, "_dt": date, "_sign": sign])
+    }
+    public func pages(chapter: Chapter, context: ParserContext) async throws -> [PageResource] {
+        let data = try await readerData(chapter: chapter, context: context)
+        return try await resources(chapter: chapter, data: data, indices: Array(1...data.count), context: context)
+    }
+    public func validationPages(chapter: Chapter, context: ParserContext) async throws -> PageValidationSample {
+        let data = try await readerData(chapter: chapter, context: context)
+        let pages = try await resources(chapter: chapter, data: data, indices: data.count == 1 ? [1] : [1, data.count], context: context)
+        return PageValidationSample(totalCount: data.count, pages: pages)
+    }
+    private func resources(chapter: Chapter, data: ReaderData, indices: [Int], context: ParserContext) async throws -> [PageResource] {
         return try await withThrowingTaskGroup(of: PageResource.self) { group in
-            for page in 1...count {
+            for page in indices {
                 group.addTask {
-                    let params = ["cid": cid, "page": String(page), "key": key, "language": "1", "gtk": "6", "_cid": cid, "_mid": mid, "_dt": date, "_sign": sign]
+                    var params = data.parameters; params["page"] = String(page)
                     let endpoint = chapter.url.appendingPathComponent("chapterfun.ashx").appending(queryItems: params.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) })
                     let request = ResourceRequest(url: endpoint, referer: chapter.url, headers: ["X-Requested-With": "XMLHttpRequest"])
                     let response = try await context.client.send(request, sourceID: context.source.id, priority: .reading)

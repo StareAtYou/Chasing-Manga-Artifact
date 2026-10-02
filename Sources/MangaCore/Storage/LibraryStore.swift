@@ -107,6 +107,10 @@ public actor LibraryStore {
             return work
         }
     }
+    public func setPreferredSource(_ sourceWorkID: SourceWorkID, for workID: WorkID) throws {
+        guard try self.workID(for: sourceWorkID) == workID, var work = try work(id: workID) else { throw MangaError.storage("来源尚未关联到此作品") }
+        work.preferredSourceWorkID = sourceWorkID; try saveRecord(kind: "work", key: workID.key, value: work)
+    }
     public func setOnShelf(_ value: Bool, workID: WorkID) throws { guard var work = try work(id: workID) else { return }; work.isOnShelf = value; try saveRecord(kind: "work", key: workID.key, value: work) }
     public func history() throws -> [ReadingProgress] { try records(kind: "progress", as: ReadingProgress.self).sorted { $0.updatedAt > $1.updatedAt } }
     public func link(_ id: SourceWorkID, to workID: WorkID) throws {
@@ -154,6 +158,11 @@ public actor LibraryStore {
     }
     public func deleteDownload(taskID: UUID) throws {
         try db.transaction { try deleteRecord(kind: "download", key: taskID.uuidString); try deleteRecord(kind: "offline-manifest", key: taskID.uuidString) }
+    }
+    public func markUpdateRead(chapterID: ChapterID) throws {
+        guard var observation = try record(kind: "update-observation", key: chapterID.sourceWorkID.key, as: UpdateObservation.self) else { return }
+        observation.newChapters.removeAll { $0.id == chapterID }
+        try saveRecord(kind: "update-observation", key: chapterID.sourceWorkID.key, value: observation)
     }
     public func save(settings: UserSettings) throws { try saveRecord(kind: "settings", key: "local", value: settings) }
     public func settings() throws -> UserSettings { try record(kind: "settings", key: "local", as: UserSettings.self) ?? UserSettings() }

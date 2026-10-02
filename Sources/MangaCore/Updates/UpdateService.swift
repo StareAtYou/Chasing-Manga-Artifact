@@ -9,6 +9,9 @@ public actor UpdateService {
     public func isFollowed(_ sourceWorkID: SourceWorkID) async throws -> Bool { try await store.record(kind: "followed-source", key: sourceWorkID.key, as: FollowedSource.self)?.followed ?? false }
     public func followedIDs() async throws -> [SourceWorkID] { try await store.records(kind: "followed-source", as: FollowedSource.self).filter(\.followed).map(\.sourceWorkID) }
     public func observations() async throws -> [UpdateObservation] { try await store.records(kind: "update-observation", as: UpdateObservation.self).sorted { $0.checkedAt > $1.checkedAt } }
+    public func markRead(chapterID: ChapterID) async throws {
+        try await store.markUpdateRead(chapterID: chapterID)
+    }
     public func check(sourceWorkIDs: [SourceWorkID]) async -> [UpdateResult] {
         var results: [UpdateResult] = []
         for id in Set(sourceWorkIDs).sorted(by: { $0.key < $1.key }) {

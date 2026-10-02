@@ -27,9 +27,13 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public var section: AppSection = .library
     public var message: String?
     public var started = false
+    public var browsingBySource: [SourceID: [SourceWork]] = [:]
+    public var catalogLoading = Set<SourceID>()
+    public var catalogErrors: [SourceID: [String: MangaError]] = [:]
     public var searchResults: [SourceWork] = []
     public var searchErrors: [SourceID: String] = [:]
     public var searching = false
+    public var openingResults = Set<SourceWorkID>()
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var queryID = UUID()
     public static func defaultRoot() throws -> URL {
@@ -59,7 +63,27 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
             if registerBuiltins { for source in BuiltinSources.candidates() where try await store.source(id: source.id) == nil { try await store.save(source: source) } }
             try await downloads.restore(); try await refresh()
         }
+        if registerBuiltins { await prepareCatalog() }
         updateScheduler.onAppActive()
+    }
+    public func prepareCatalog() async {
+        let available = sourceList.filter { $0.enabled && ($0.binding != nil || BuiltinSources.candidateAdapter(for: $0) != nil) }
+        for source in available where browsingBySource[source.id] == nil {
+            browsingBySource[source.id] = (try? await store.record(kind: "catalog-cache", key: source.id.key, as: [SourceWork].self)) ?? []
+        }
+        await withTaskGroup(of: Void.self) { group in
+            for source in available { group.addTask { await self.inspectSource(source.id) } }
+        }
+    }
+    public func inspectSource(_ id: SourceID) async {
+        guard !catalogLoading.contains(id) else { return }
+        catalogLoading.insert(id); defer { catalogLoading.remove(id) }
+        do {
+            let inspection = try await sources.inspectCatalog(sourceID: id)
+            if !inspection.works.isEmpty { browsingBySource[id] = inspection.works }
+            catalogErrors[id] = inspection.errors
+            sourceList = try await store.sources()
+        } catch is CancellationError { } catch { catalogErrors[id] = ["browse": (error as? MangaError) ?? .networkUnavailable] }
     }
     public func refresh() async throws {
         library = try await store.library(); catalog = try await store.allSourceWorks(); sourceList = try await store.sources()
@@ -73,8 +97,8 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public func openWorkURL(_ url: URL, sourceID: SourceID) async {
         await perform {
             guard let source = try await store.source(id: sourceID), SourceScope.contains(url, in: source.baseURL) else { throw MangaError.invalidURL }
-            let work = try await sources.details(url: url, sourceID: sourceID)
-            await select(work)
+            let item = try await sources.loadWork(url: url, sourceID: sourceID)
+            try await storeSelection(item)
         }
     }
     public func previewFile(report: DetectionReport, candidate: DetectionCandidate, page: PageResource) async throws -> URL {
@@ -82,12 +106,17 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
         let preview = PageResource(id: id, ordinal: page.ordinal, request: page.request, expiresAt: page.expiresAt)
         return try await images.file(for: preview, sourceID: report.sourceID)
     }
-    public func select(_ result: SourceWork) async { await perform {
-        let work = try await sources.details(url: result.url, sourceID: result.id.sourceID); let chapters = try await sources.chapters(work: work)
-        try await store.save(sourceWork: work, chapters: chapters); let grouped = try await store.createWork(from: work.id, onShelf: false)
+    public func select(_ result: SourceWork) async {
+        guard !openingResults.contains(result.id) else { return }
+        openingResults.insert(result.id); defer { openingResults.remove(result.id) }
+        await perform { try await storeSelection(sources.loadWork(url: result.url, sourceID: result.id.sourceID)) }
+    }
+    private func storeSelection(_ item: DetectedWork) async throws {
+        try await store.save(sourceWork: item.work, chapters: item.chapters)
+        let grouped = try await store.createWork(from: item.work.id, onShelf: false)
         path.append(.work(grouped.id)); try await refresh()
-    } }
-    public func addToShelf(_ workID: WorkID, sourceWorkID: SourceWorkID) async { await perform { try await store.setOnShelf(true, workID: workID); try await updates.setFollowed(true, sourceWorkID: sourceWorkID); _ = await updates.check(sourceWorkIDs: [sourceWorkID]); try await refresh() } }
+    }
+    public func addToShelf(_ workID: WorkID, sourceWorkID: SourceWorkID) async { await perform { try await store.setPreferredSource(sourceWorkID, for: workID); try await store.setOnShelf(true, workID: workID); try await updates.setFollowed(true, sourceWorkID: sourceWorkID); _ = await updates.check(sourceWorkIDs: [sourceWorkID]); try await refresh() } }
     public func sourceName(_ id: SourceID) -> String { sourceList.first { $0.id == id }?.name ?? "已删除的来源" }
     public func searchFor(_ query: String, sourceIDs: [SourceID]) {
         searchTask?.cancel(); queryID = UUID(); let id = queryID; searchResults = []; searchErrors = [:]

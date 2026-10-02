@@ -49,16 +49,25 @@ public actor SourceService {
         return adapter
     }
     public func inspectCatalogCapabilities(sourceID: SourceID, searchQuery: String) async throws -> [String: MangaError] {
+        try await inspectCatalog(sourceID: sourceID, searchQuery: searchQuery).errors
+    }
+    public func inspectCatalog(sourceID: SourceID, searchQuery: String = "一人之下") async throws -> CatalogInspection {
         let source = try await activeSource(sourceID)
         let adapter = try await adapter(for: sourceID); let context = try await context(for: sourceID)
-        var capabilities = source.capabilities; var errors: [String: MangaError] = [:]
-        do { if !(try await adapter.browse(context: context)).isEmpty { capabilities.insert(.browse) } }
-        catch { errors["browse"] = (error as? MangaError) ?? .networkUnavailable }
-        do { if !(try await adapter.search(query: searchQuery, context: context)).isEmpty { capabilities.insert(.search) } }
-        catch { errors["search"] = (error as? MangaError) ?? .networkUnavailable }
-        guard var latest = try await store.source(id: sourceID), latest.revision == source.revision, !latest.removed else { throw CancellationError() }
+        var capabilities = source.capabilities.subtracting([.browse, .search]); var errors: [String: MangaError] = [:]; var works: [SourceWork] = []
+        do {
+            works = try await adapter.browse(context: context).filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
+            if !works.isEmpty { capabilities.insert(.browse) } else { errors["browse"] = .parseMismatch("没有取得浏览作品") }
+        } catch { errors["browse"] = (error as? MangaError) ?? .networkUnavailable }
+        do {
+            let found = try await adapter.search(query: searchQuery, context: context).filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
+            if !found.isEmpty { capabilities.insert(.search) } else { errors["search"] = .parseMismatch("没有取得搜索样本") }
+        } catch { errors["search"] = (error as? MangaError) ?? .networkUnavailable }
+        try Task.checkCancellation()
+        guard var latest = try await store.source(id: sourceID), latest.revision == source.revision, latest.enabled, !latest.removed else { throw CancellationError() }
         latest.capabilities = capabilities; try await store.save(source: latest)
-        return errors
+        if !works.isEmpty { try await store.saveRecord(kind: "catalog-cache", key: sourceID.key, value: works) }
+        return CatalogInspection(sourceID: sourceID, works: works, errors: errors)
     }
     public func setEnabled(_ enabled: Bool, sourceID: SourceID) async throws {
         try await store.setSourceEnabled(enabled, id: sourceID)
@@ -72,6 +81,17 @@ public actor SourceService {
             binding.structureFailures += 1; binding.needsRetest = binding.structureFailures >= 2
         } else { binding.structureFailures = 0 }
         _ = try await store.save(binding: binding, sourceID: sourceID, expectedRevision: source.revision)
+    }
+    public func loadWork(url: URL, sourceID: SourceID) async throws -> DetectedWork {
+        try await tracked(sourceID) { adapter, original in
+            let context = ParserContext(source: original.source, client: DocumentSessionClient(original.client), renderer: original.renderer)
+            var work = try await adapter.details(url: url, context: context)
+            guard work.id.sourceID == sourceID, SourceScope.contains(work.url, in: original.source.baseURL) else { throw MangaError.parseMismatch("作品来源不一致") }
+            let chapters = try await adapter.chapters(work: work, context: context)
+            guard !chapters.isEmpty, chapters.allSatisfy({ $0.id.sourceWorkID == work.id && SourceScope.contains($0.url, in: original.source.baseURL) }) else { throw MangaError.parseMismatch("没有取得有效章节目录") }
+            work.checkedAt = Date(); work.latestChapter = chapters.last?.title ?? ""
+            return DetectedWork(work: work, chapters: chapters)
+        }
     }
     public func details(url: URL, sourceID: SourceID) async throws -> SourceWork {
         try await tracked(sourceID) { adapter, context in try await adapter.details(url: url, context: context) }

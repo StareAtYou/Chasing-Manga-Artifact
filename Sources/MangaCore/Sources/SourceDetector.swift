@@ -65,8 +65,11 @@ public struct SourceDetector: Sendable {
                     let chosen = available.count > 1 ? [first, available.last!] : [first]
                     var workFingerprints: [String] = []; var workPreviews: [PageResource] = []
                     for chapter in chosen {
-                        let pages = try await adapter.pages(chapter: chapter, context: context)
-                        guard !pages.isEmpty, Set(pages.map(\.id)).count == pages.count,
+                        let sample = try await adapter.validationPages(chapter: chapter, context: context)
+                        let pages = sample.pages
+                        guard !pages.isEmpty, sample.totalCount >= pages.count,
+                              pages.first?.ordinal == 0, pages.last?.ordinal == sample.totalCount - 1,
+                              pages.allSatisfy({ $0.id.chapterID == chapter.id }), Set(pages.map(\.id)).count == pages.count,
                               pages.map(\.ordinal) == pages.map(\.ordinal).sorted(),
                               Set(pages.map(\.ordinal)).count == pages.count else { throw MangaError.parseMismatch("页序不完整") }
                         let representatives = pages.count > 1 ? [pages.first!, pages.last!] : [pages[0]]
@@ -75,7 +78,7 @@ public struct SourceDetector: Sendable {
                             _ = try verifier.verify(response.data)
                             workPreviews.append(page)
                         }
-                        workFingerprints.append(semanticID(url) + "|" + semanticID(chapter.url) + "|" + pages.map { page in
+                        workFingerprints.append(semanticID(url) + "|" + semanticID(chapter.url) + "|count:\(sample.totalCount)|" + pages.map { page in
                             // Only the documented authentication parameters are ephemeral.
                             var value = URLComponents(url: page.request.url, resolvingAgainstBaseURL: false)!
                             value.queryItems = value.queryItems?.filter { !["sign", "signature", "token", "expires", "expiry", "key"].contains($0.name.lowercased()) }
