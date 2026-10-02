@@ -30,7 +30,8 @@ public struct GuaziAdapter: SourceAdapter {
             let titleElement = try element.select("h2,h3,.comic-name,.title").first()
             let image = try element.select("img").first()
             let candidates = try [titleElement?.text() ?? "", element.attr("title"), image?.attr("alt") ?? "", element.text()]
-            guard let title = candidates.first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else { continue }
+            guard let rawTitle = candidates.first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else { continue }
+            let title = rawTitle.hasSuffix("漫画封面") ? String(rawTitle.dropLast(4)) : rawTitle
             let id = SourceWorkID(sourceID: context.source.id, externalID: semanticID(link))
             guard seen.insert(id).inserted else { continue }
             let cover = try image.flatMap { resolvedWebURL(try $0.attr("data-src").isEmpty ? $0.attr("src") : $0.attr("data-src"), relativeTo: url) }

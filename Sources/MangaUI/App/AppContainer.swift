@@ -20,8 +20,11 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public var catalog: [SourceWork] = []
     public var sourceList: [Source] = []
     public var downloadList: [DownloadTask] = []
+    public var updateStatuses: [UpdateCheckStatus] = []
     public var updateList: [UpdateObservation] = []
     public var history: [ReadingProgress] = []
+    public var historyTitles: [ChapterID: String] = [:]
+    public var workSourceIDs: [WorkID: Set<SourceWorkID>] = [:]
     public var settings = UserSettings()
     public var path: [Route] = []
     public var section: AppSection = .library
@@ -33,6 +36,12 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public var searchResults: [SourceWork] = []
     public var searchErrors: [SourceID: String] = [:]
     public var searching = false
+    public var preparingChapters = Set<ChapterID>()
+    public var preparingBatch = false
+    public var preparationTotal = 0
+    public var preparationFinished = 0
+    public var preparationErrors: [ChapterID: String] = [:]
+    @ObservationIgnored var batchTask: Task<Void, Never>?
     public var openingResults = Set<SourceWorkID>()
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var queryID = UUID()
@@ -53,9 +62,10 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
             guard let chapter = try await store.chapter(id: page.id.chapterID), let resource = try await sources.pages(chapter: chapter).first(where: { $0.id == page.id }) else { throw MangaError.expiredResource }; return resource
         })
         let transfer = try injectedTransfer ?? BackgroundTransfer(root: root, contexts: contexts, scheduler: scheduler, finishEvents: finishBackgroundEvents)
-        downloads = try DownloadManager(store: store, transfer: transfer, verifier: ImageVerifier(), root: root, refresh: { try await sources.pages(chapter: $0) })
+        downloads = try DownloadManager(store: store, transfer: transfer, verifier: ImageVerifier(), root: root, refresh: { try await sources.pages(chapter: $0, priority: .download) })
         notificationService = NotificationService(); updates = UpdateService(store: store, sources: sources, notifications: injectedNotifications ?? notificationService)
         updateScheduler = UpdateScheduler(updates: updates); navigation = NavigationState(store: store, downloads: downloads)
+        updateScheduler.didCheck = { [weak self] in try? await self?.refresh() }
     }
     public func start(registerBuiltins: Bool = true) async {
         guard !started else { return }; started = true
@@ -88,6 +98,10 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public func refresh() async throws {
         library = try await store.library(); catalog = try await store.allSourceWorks(); sourceList = try await store.sources()
         downloadList = try await downloads.tasks(); updateList = try await updates.observations(); history = try await store.history(); settings = try await store.settings()
+        var titles: [ChapterID: String] = [:]; for progress in history { titles[progress.chapterID] = try await store.chapter(id: progress.chapterID)?.title }
+        updateStatuses = try await updates.checkStatuses()
+        historyTitles = titles
+        var sourceIDs: [WorkID: Set<SourceWorkID>] = [:]; for work in library { sourceIDs[work.id] = Set(try await store.sourceWorks(for: work.id).map(\.id)) }; workSourceIDs = sourceIDs
     }
     public func perform(_ action: () async throws -> Void) async { do { try await action() } catch is CancellationError { } catch { message = error.localizedDescription } }
     public func open(_ work: Work) async { await perform { path.append(try await navigation.open(workID: work.id)) } }

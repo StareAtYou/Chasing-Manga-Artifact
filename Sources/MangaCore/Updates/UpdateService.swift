@@ -9,6 +9,7 @@ public actor UpdateService {
     public func isFollowed(_ sourceWorkID: SourceWorkID) async throws -> Bool { try await store.record(kind: "followed-source", key: sourceWorkID.key, as: FollowedSource.self)?.followed ?? false }
     public func followedIDs() async throws -> [SourceWorkID] { try await store.records(kind: "followed-source", as: FollowedSource.self).filter(\.followed).map(\.sourceWorkID) }
     public func observations() async throws -> [UpdateObservation] { try await store.records(kind: "update-observation", as: UpdateObservation.self).sorted { $0.checkedAt > $1.checkedAt } }
+    public func checkStatuses() async throws -> [UpdateCheckStatus] { try await store.records(kind: "update-check-status", as: UpdateCheckStatus.self).sorted { $0.checkedAt > $1.checkedAt } }
     public func markRead(chapterID: ChapterID) async throws {
         try await store.markUpdateRead(chapterID: chapterID)
     }
@@ -22,7 +23,7 @@ public actor UpdateService {
                 let chapters = try await sources.chapters(work: work)
                 try Task.checkCancellation()
                 guard try await isFollowed(id) else { checking.remove(id); continue }
-                guard !chapters.isEmpty else { results.append(UpdateResult(sourceWorkID: id)); checking.remove(id); continue }
+                guard !chapters.isEmpty else { throw MangaError.parseMismatch("更新目录为空，已保留上次的章节") }
                 let before = try await store.record(kind: "update-observation", key: id.key, as: UpdateObservation.self)
                 var observation = before ?? UpdateObservation(sourceWorkID: id, baseline: Set(chapters.map(\.id)))
                 let new = before == nil ? [] : chapters.filter { !observation.baseline.contains($0.id) }
@@ -42,9 +43,10 @@ public actor UpdateService {
                     do { try await notifications.notify(workID: workID, chapters: new) }
                     catch { notificationError = (error as? MangaError) ?? .unsupported("通知未发送") }
                 }
+                try await store.saveRecord(kind: "update-check-status", key: id.key, value: UpdateCheckStatus(sourceWorkID: id, notificationError: notificationError))
                 results.append(UpdateResult(sourceWorkID: id, newChapters: new, notificationError: notificationError))
             } catch is CancellationError { checking.remove(id); break }
-            catch { results.append(UpdateResult(sourceWorkID: id, error: (error as? MangaError) ?? .networkUnavailable)) }
+            catch { let mapped = (error as? MangaError) ?? .networkUnavailable; try? await store.saveRecord(kind: "update-check-status", key: id.key, value: UpdateCheckStatus(sourceWorkID: id, error: mapped)); results.append(UpdateResult(sourceWorkID: id, error: mapped)) }
             checking.remove(id)
         }
         return results

@@ -5,6 +5,7 @@ import BackgroundTasks
 #endif
 @MainActor public final class UpdateScheduler {
     public static let identifier = "com.chasingmanga.local.refresh"
+    public var didCheck: (@MainActor () async -> Void)?
     private let updates: UpdateService
     private var running: Task<Void, Never>?
     private var periodic: Task<Void, Never>?
@@ -28,7 +29,7 @@ import BackgroundTasks
         running = Task { @MainActor [weak self] in
             guard let self else { return }
             let ids = (try? await updates.followedIDs()) ?? []
-            _ = await updates.check(sourceWorkIDs: ids); running = nil
+            _ = await updates.check(sourceWorkIDs: ids); await didCheck?(); running = nil
         }
     }
     public func stop() { running?.cancel(); periodic?.cancel(); running = nil; periodic = nil }
@@ -51,6 +52,7 @@ import BackgroundTasks
             guard let self else { task.setTaskCompleted(success: false); return }
             let ids = (try? await updates.followedIDs()) ?? []
             let results = await updates.check(sourceWorkIDs: ids)
+            await didCheck?()
             task.setTaskCompleted(success: !Task.isCancelled && results.allSatisfy { $0.error == nil })
         }
         task.expirationHandler = { job.cancel() }

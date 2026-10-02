@@ -15,16 +15,26 @@ public struct DM5Adapter: SourceAdapter {
         let doc = try checked(await context.text(url, priority: .search)); var seen = Set<URL>(); var result: [SourceWork] = []
         for link in try doc.select("a[href^='/manhua-']").array() {
             guard let target = resolvedWebURL(try link.attr("href"), relativeTo: url), seen.insert(target).inserted else { continue }
-            let declared = try link.attr("title"); let title = try declared.isEmpty ? link.select("img").first()?.attr("alt") ?? link.text() : declared
+            let declared = try link.attr("title")
+            var container: Element? = link
+            while let current = container, !(current.hasClass("mh-item") || current.hasClass("banner_detail_form")) { container = current.parent() }
+            let directImage = try link.select("img").first()
+            guard !declared.isEmpty || container != nil || directImage != nil else { continue }
+            let title = try declared.isEmpty ? link.select("img").first()?.attr("alt") ?? link.text() : declared
             guard !title.isEmpty else { continue }
-            result.append(SourceWork(id: SourceWorkID(sourceID: context.source.id, externalID: semanticID(target)), title: title, url: target, capabilities: capabilities))
+            let image = try (container ?? link).select("img").first()
+            let style = try (container ?? link).select(".mh-cover").first()?.attr("style") ?? ""
+            let cssCover = DM5ReaderData.captures(#"url\(\s*['"]?([^'")]+)"#, in: style)?.first ?? ""
+            let candidates = try [cssCover, image?.attr("data-original") ?? "", image?.attr("data-src") ?? "", image?.attr("src") ?? "", link.attr("data-background")]
+            let cover = candidates.lazy.compactMap { resolvedWebURL($0, relativeTo: url) }.first
+            result.append(SourceWork(id: SourceWorkID(sourceID: context.source.id, externalID: semanticID(target)), title: title, url: target, coverURL: cover, capabilities: capabilities))
         }
         return result
     }
     public func details(url: URL, context: ParserContext) async throws -> SourceWork {
         let doc = try checked(await context.text(url, priority: .probe))
         guard let element = try doc.select(".banner_detail_form .info > .title").first() else { throw MangaError.parseMismatch("缺少 DM5 作品标题") }
-        let title = try element.ownText().trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = element.ownText().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !title.isEmpty else { throw MangaError.parseMismatch("作品标题为空") }
         let cover = try doc.select(".banner_detail_form .cover img").first().flatMap { resolvedWebURL(try $0.attr("src"), relativeTo: url) }
         return SourceWork(id: SourceWorkID(sourceID: context.source.id, externalID: semanticID(url)), title: title, url: url, coverURL: cover, capabilities: capabilities)

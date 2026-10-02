@@ -20,3 +20,12 @@ public struct UpdateResult: Sendable {
         self.sourceWorkID = sourceWorkID; self.newChapters = newChapters; self.error = error; self.notificationError = notificationError
     }
 }
+
+public struct UpdateCheckStatus: Codable, Sendable, Identifiable {
+    public var id: SourceWorkID { sourceWorkID }
+    public let sourceWorkID: SourceWorkID
+    public let checkedAt: Date
+    public let error: MangaError?
+    public let notificationError: MangaError?
+    public init(sourceWorkID: SourceWorkID, checkedAt: Date = Date(), error: MangaError? = nil, notificationError: MangaError? = nil) { self.sourceWorkID = sourceWorkID; self.checkedAt = checkedAt; self.error = error; self.notificationError = notificationError }
+}

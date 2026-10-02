@@ -99,8 +99,11 @@ public actor SourceService {
     public func chapters(work: SourceWork) async throws -> [Chapter] {
         try await tracked(work.id.sourceID) { adapter, context in try await adapter.chapters(work: work, context: context) }
     }
-    public func pages(chapter: Chapter) async throws -> [PageResource] {
-        try await tracked(chapter.id.sourceWorkID.sourceID) { adapter, context in try await adapter.pages(chapter: chapter, context: context) }
+    public func pages(chapter: Chapter, priority: RequestPriority = .reading) async throws -> [PageResource] {
+        try await tracked(chapter.id.sourceWorkID.sourceID) { adapter, original in
+            let context = ParserContext(source: original.source, client: PrioritizedHTTPClient(client: original.client, priority: priority), renderer: original.renderer)
+            return try await adapter.pages(chapter: chapter, context: context)
+        }
     }
     private func tracked<T: Sendable>(_ sourceID: SourceID, operation: @Sendable (any SourceAdapter, ParserContext) async throws -> T) async throws -> T {
         do {

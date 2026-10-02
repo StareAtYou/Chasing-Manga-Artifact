@@ -12,3 +12,9 @@ actor DocumentSessionClient: HTTPClient {
         try Task.checkCancellation(); responses[request] = response; return response
     }
 }
+
+struct PrioritizedHTTPClient: HTTPClient {
+    let client: any HTTPClient
+    let priority: RequestPriority
+    func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse { try await client.send(request, sourceID: sourceID, priority: self.priority) }
+}

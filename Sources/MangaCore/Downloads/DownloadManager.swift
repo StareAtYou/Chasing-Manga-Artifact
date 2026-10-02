@@ -20,7 +20,10 @@ public actor DownloadManager {
     }
     public func enqueue(chapter: Chapter, pages: [PageResource]) async throws -> UUID {
         try validatePages(pages, chapter: chapter)
-        if let existing = try await tasks().first(where: { $0.chapter.id == chapter.id && $0.state != .cancelled }) { return existing.id }
+        if let existing = try await tasks().first(where: { $0.chapter.id == chapter.id && $0.state != .cancelled }) {
+            if [.failed, .paused].contains(existing.state) { try await resume(taskID: existing.id) }
+            return existing.id
+        }
         let source = try await store.source(id: chapter.id.sourceWorkID.sourceID)
         let task = DownloadTask(chapter: chapter, pages: pages.sorted { $0.ordinal < $1.ordinal }, sourceSnapshot: source)
         _ = try await store.saveDownload(task: task, manifest: OfflineManifest(taskID: task.id, chapterID: chapter.id))

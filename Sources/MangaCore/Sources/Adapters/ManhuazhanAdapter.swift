@@ -22,7 +22,9 @@ public struct ManhuazhanAdapter: SourceAdapter {
             guard let url = resolvedWebURL(try link.attr("href"), relativeTo: response.finalURL), WebOrigin(url) == WebOrigin(context.source.baseURL), url.path.range(of: #"^/comic/\d+/?$"#, options: .regularExpression) != nil else { continue }
             let title = try link.attr("title").isEmpty ? link.text().trimmingCharacters(in: .whitespacesAndNewlines) : link.attr("title")
             guard !title.isEmpty, seen.insert(url).inserted else { continue }
-            let cover = resolvedWebURL(try link.attr("data-background"), relativeTo: response.finalURL)
+            let image = try link.select("img").first()
+            let candidates = try [link.attr("data-background"), image?.attr("data-original") ?? "", image?.attr("data-src") ?? "", image?.attr("src") ?? ""]
+            let cover = candidates.lazy.compactMap { resolvedWebURL($0, relativeTo: response.finalURL) }.first
             result.append(SourceWork(id: SourceWorkID(sourceID: context.source.id, externalID: semanticID(url)), title: title, url: url, coverURL: cover, capabilities: capabilities))
         }
         return result

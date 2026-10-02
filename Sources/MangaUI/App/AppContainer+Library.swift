@@ -1,6 +1,24 @@
 import Foundation
 import MangaCore
 extension AppContainer {
+    public func chapterTitle(_ id: ChapterID) -> String { historyTitles[id] ?? downloadList.first { $0.chapter.id == id }?.chapter.title ?? "已保存的章节" }
+    public func unreadCount(for workID: WorkID) -> Int { updateList.filter { workSourceIDs[workID]?.contains($0.sourceWorkID) == true }.reduce(0) { $0 + $1.newChapters.count } }
+    public func resume(_ progress: ReadingProgress) async {
+        await perform {
+            let source = try await store.source(id: progress.sourceWorkID.sourceID)
+            let offline = (try? await downloads.offlineManifest(chapterID: progress.chapterID))?.0.state == .completed
+            if source.map({ $0.enabled && !$0.removed }) == true || offline { path.append(.reader(progress.chapterID)) }
+            else if let workID = try await store.workID(for: progress.sourceWorkID) { path.append(.work(workID)); message = "上次阅读的来源当前不可用，请选择其他关联来源。" }
+            else { throw MangaError.chapterUnavailable }
+        }
+    }
+    public func coverFile(work: SourceWork) async throws -> URL {
+        guard let url = work.coverURL else { throw MangaError.invalidURL }
+        let chapter = ChapterID(sourceWorkID: work.id, externalID: "__cover__")
+        let id = PageID(chapterID: chapter, externalID: ContentDigest.hex(Data(url.absoluteString.utf8)))
+        let page = PageResource(id: id, ordinal: 0, request: ResourceRequest(url: url, referer: work.url))
+        return try await images.file(for: page, sourceID: work.id.sourceID)
+    }
     public func chooseSource(_ sourceWorkID: SourceWorkID, for workID: WorkID) async {
         await perform {
             try await store.setPreferredSource(sourceWorkID, for: workID)

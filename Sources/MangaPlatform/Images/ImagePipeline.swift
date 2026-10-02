@@ -10,6 +10,7 @@ public actor ImagePipeline {
     private let refresh: Refresh?
     private let memoryLimit: Int
     private var jobs: [PageID: Job] = [:]
+    private var readers: [PageID: [UUID: UUID]] = [:]
     private var decoded: [String: Decoded] = [:]
     private var prefetchWindow = 3
     public var decodedCacheBytes: Int { decoded.values.reduce(0) { $0 + $1.bytes } }
@@ -25,9 +26,16 @@ public actor ImagePipeline {
         }
         if let old = jobs[page.id], old.priority == .prefetch { old.task.cancel(); jobs.removeValue(forKey: page.id) }
         let job = jobs[page.id] ?? start(page, sourceID: sourceID, priority: .reading)
+        let consumer = UUID(); readers[page.id, default: [:]][consumer] = job.id
+        defer { releaseReader(page.id, consumer: consumer, cancel: false) }
         return try await withTaskCancellationHandler {
             let result = try await job.task.value; try Task.checkCancellation(); return result
-        } onCancel: { job.task.cancel() }
+        } onCancel: { Task { await self.releaseReader(page.id, consumer: consumer, cancel: true) } }
+    }
+    private func releaseReader(_ pageID: PageID, consumer: UUID, cancel: Bool) {
+        guard let token = readers[pageID]?.removeValue(forKey: consumer) else { return }
+        if readers[pageID]?.isEmpty == true { readers.removeValue(forKey: pageID) }
+        if cancel, let job = jobs[pageID], job.id == token, readers[pageID]?.values.contains(token) != true { job.task.cancel() }
     }
     @discardableResult private func start(_ page: PageResource, sourceID: SourceID, priority: RequestPriority) -> Job {
         let client = self.client; let files = self.files; let verifier = self.verifier; let refresh = self.refresh

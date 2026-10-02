@@ -42,11 +42,105 @@ actor WorkPageClient: HTTPClient {
         return textResponse("<h1 data-manga-title data-work-id='42'>测试漫画</h1><img data-manga-cover src='/cover.jpg'><div data-manga-author>作者甲</div><div data-manga-summary>内容简介</div><a data-chapter-id='1' href='/chapter/1'>第1话</a>", request.url)
     }
 }
+actor CoverContextClient: HTTPClient {
+    let image: Data
+    init() throws { image = try generatedPNG() }
+    func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
+        guard request.referer == Samples.work().url, sourceID == Samples.sourceA.id else { throw MangaError.accessRestricted(403) }
+        return ResourceResponse(data: image, finalURL: request.url, statusCode: 200)
+    }
+}
 actor RefreshCounter {
     var count = 0
     func refreshed(_ pages: [PageResource]) -> [PageResource] { count += 1; return pages }
 }
+actor PriorityCaptureClient: HTTPClient {
+    var observed: [RequestPriority] = []
+    func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse { observed.append(priority); return textResponse("<div data-manga-reader><img data-page-id='1' src='https://images.test/1.png'></div>", request.url) }
+}
 public let usabilityChecks: [Check] = [
+    Check("UsabilityTests.downloadPreparationYieldsToReading") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db.sqlite")); var source = Samples.sourceA; source.binding = ParserBinding(parserID: "html-declared-v1"); try await store.save(source: source)
+        let client = PriorityCaptureClient(); let service = SourceService(store: store, registry: ParserRegistry(), client: client, verifier: ImageVerifier())
+        _ = try await service.pages(chapter: Samples.chapter(Samples.work()), priority: .download)
+        try expect(await client.observed.allSatisfy { $0 == .download }, "Adapter reader defaults must not promote background preparation ahead of reading")
+    },
+    Check("UsabilityTests.siteListingsExcludeNavigationAndCoverSuffix") {
+        let dm = BuiltinSources.candidates()[2]
+        let html = "<nav><a href='/manhua-new/'>更新</a><a href='/manhua-rank/'>排行</a><a href='/manhua-riman/'>日漫</a></nav><div class='mh-item'><p class='mh-cover' style='background-image: url(https://covers.test/c.jpg)'></p><h2><a title='真实漫画' href='/manhua-demo/'>真实漫画</a></h2></div>"
+        let works = try await DM5Adapter().browse(context: ParserContext(source: dm, client: FixtureHTTPClient([dm.baseURL.absoluteString: textResponse(html, dm.baseURL)])))
+        try expect(works.map(\.title) == ["真实漫画"] && works.first?.coverURL?.host == "covers.test", "Navigation is not a comic, CSS cover belongs to its containing card")
+        let guazi = BuiltinSources.candidates()[1]
+        let page = "<a href='/comic.php?id=7'><img alt='漫画甲漫画封面' src='/cover.jpg'></a><a href='/comic.php?id=7'><h2>漫画甲</h2></a>"
+        let found = try await GuaziAdapter().browse(context: ParserContext(source: guazi, client: FixtureHTTPClient([guazi.baseURL.absoluteString: textResponse(page, guazi.baseURL)])))
+        try expect(found.first?.title == "漫画甲", "Cover accessibility suffix does not become the comic title")
+    },
+    Check("UsabilityTests.browsingRetainsRealSiteCovers") {
+        for (adapter, source, html) in [
+            (ManhuazhanAdapter() as any SourceAdapter, BuiltinSources.candidates()[0], "<a href='/comic/7' title='漫画'><img data-original='/cover.jpg'></a>"),
+            (DM5Adapter() as any SourceAdapter, BuiltinSources.candidates()[2], "<a href='/manhua-demo/' title='漫画'><img src='/cover.jpg'></a>")
+        ] {
+            let found = try await adapter.browse(context: ParserContext(source: source, client: FixtureHTTPClient([source.baseURL.absoluteString: textResponse(html, source.baseURL)])))
+            try expect(found.first?.coverURL?.path == "/cover.jpg", "\(source.name) discovery keeps the actual cover image")
+        }
+    },
+    Check("UsabilityTests.batchDownloadsPersistDistinctChapters") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root); let work = try await app.store.allSourceWorks()[0]; let chapters = try await app.store.chapters(for: work.id)
+        await app.queueDownloads(chapters)
+        let tasks = try await app.downloads.tasks()
+        try expect(Set(tasks.map { $0.chapter.id }) == Set(chapters.map(\.id)), "Selected chapters create distinct durable tasks")
+        for task in tasks { _ = try await waitForDownload(app.downloads, task.id) }
+        await app.queueDownloads(chapters)
+        try expect(try await app.downloads.tasks().count == chapters.count, "Repeated selection does not duplicate completed downloads")
+        await app.updateScheduler.stop()
+    },
+    Check("UsabilityTests.updateFailureSurvivesRelaunch") {
+        let (service, store, client, notifier, work, root) = try await updateFixture(); defer { try? FileManager.default.removeItem(at: root) }
+        _ = await service.check(sourceWorkIDs: [work.id]); await client.setCount(0); _ = await service.check(sourceWorkIDs: [work.id])
+        let restarted = UpdateService(store: store, sources: SourceService(store: store, registry: ParserRegistry(), client: client, verifier: ImageVerifier()), notifications: notifier)
+        let statuses = try await restarted.checkStatuses()
+        try expect(statuses.first?.error != nil, "Failure remains visible after reopening updates")
+        await client.setCount(3); _ = await restarted.check(sourceWorkIDs: [work.id])
+        try expect(try await restarted.checkStatuses().first?.error == nil, "Successful retry clears stale error")
+    },
+    Check("UsabilityTests.emptyUpdateReportsFailure") {
+        let (service, _, client, _, work, root) = try await updateFixture(); defer { try? FileManager.default.removeItem(at: root) }
+        _ = await service.check(sourceWorkIDs: [work.id]); await client.setCount(0)
+        let result = await service.check(sourceWorkIDs: [work.id])
+        try expect(result.first?.error != nil, "Empty directory must report failure instead of no updates")
+    },
+    Check("UsabilityTests.enqueueRetriesFailedChapter") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db.sqlite")); try await store.save(source: Samples.sourceA)
+        let chapter = Samples.chapter(Samples.work()); let pages = Samples.pages(chapter)
+        let failing = try DownloadManager(store: store, transfer: FixtureTransfer(data: try generatedPNG(), failAfter: 0), verifier: ImageVerifier(), root: root)
+        let id = try await failing.enqueue(chapter: chapter, pages: pages); _ = try await waitForDownload(failing, id)
+        let retry = try DownloadManager(store: store, transfer: FixtureTransfer(data: try generatedPNG()), verifier: ImageVerifier(), root: root)
+        let queued = try await retry.enqueue(chapter: chapter, pages: pages); let done = try await waitForDownload(retry, queued)
+        try expect(queued == id && done.state == .completed, "Download button retries failed existing task without duplicating it")
+    },
+    Check("UsabilityTests.coverRequestsKeepSourceReferer") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let client = try CoverContextClient()
+        let app = try await MainActor.run { try AppContainer(root: root, client: client, transfer: FixtureTransfer(data: try generatedPNG())) }
+        var work = Samples.work(); work.coverURL = URL(string: "https://covers.test/cover.jpg")!
+        let file = try await app.coverFile(work: work)
+        try expect((try ImageVerifier().verify(Data(contentsOf: file))).width == 16, "Real cover request must carry its work page Referer")
+    },
+    Check("UsabilityTests.cancelledImageConsumerKeepsOtherReaderAlive") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let transport = ImageBlockingTransport(data: try generatedPNG()); let page = Samples.pages(Samples.chapter(Samples.work()))[0]
+        let pipeline = ImagePipeline(client: URLSessionHTTPClient(transport: transport), files: try PageFileStore(root: root))
+        let first = Task { try await pipeline.file(for: page, sourceID: Samples.sourceA.id) }
+        while await transport.paths.isEmpty { await Task.yield() }
+        let second = Task { try await pipeline.file(for: page, sourceID: Samples.sourceA.id) }
+        for _ in 0..<500 { await Task.yield() }
+        first.cancel(); await transport.release(); _ = try? await first.value
+        let retained = try await second.value
+        try expect(FileManager.default.fileExists(atPath: retained.path), "One disappearing view must not cancel another view waiting for the same image")
+    },
     Check("UsabilityTests.manualAssociationPreservesBothSourceProgresses") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let app = try await UITestBootstrap.make(root: root); let sources = try await app.store.allSourceWorks(); let first = sources[0]; let second = sources[1]
