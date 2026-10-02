@@ -5,8 +5,12 @@ public enum BuiltinSources {
             Source(id: SourceID(rawValue: UUID(uuidString: "00000000-0000-0000-0000-00000000010\(index)")!), name: value.0, baseURL: URL(string: value.1)!)
         }
     }
-    public static func adapters() -> [any SourceAdapter] { [GuaziAdapter(), HTMLTemplateAdapter(), JSONTemplateAdapter()] }
+    public static func adapters() -> [any SourceAdapter] { [GuaziAdapter(), DM5Adapter(), HTMLTemplateAdapter(), JSONTemplateAdapter()] }
     public static func candidateAdapter(for source: Source) -> (any SourceAdapter)? {
-        source.baseURL.host?.lowercased() == "www.guazimanhua.com" ? GuaziAdapter() : nil
+        switch source.baseURL.host?.lowercased() {
+        case "www.guazimanhua.com": GuaziAdapter()
+        case "www.dm5.com": DM5Adapter()
+        default: nil
+        }
     }
 }

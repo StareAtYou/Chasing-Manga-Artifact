@@ -160,11 +160,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** DM5Adapter 实现 SourceAdapter，id=`dm5-reader`，由网站正常公开阅读流程获取动态请求上下文；PageResource 保留稳定页号，不把临时签名当 ID。
 
-- [ ] **1. 写失败测试：** `dm5PageOrderAndCount()` 验证分页完整且有序；`expiredContextRefreshesWithoutChangingIdentity()` 验证上下文刷新而 PageID 不变；`paidChapterStaysUnavailable()` 验证付费页不会被解析为正文。
-- [ ] **2. 验证失败：** `swift test --filter DM5AdapterTests` 应失败。
-- [ ] **3. 实现：** 根据实际公开 reader 脚本确认章节接口；获取网站生成的时效参数或通过 WebKit 正常加载正文。解析响应采用已确认格式，不执行不受控接口文本。付费/登录/访问错误明确分类，能力分别登记。
+- [x] **1. 写失败测试：** `dm5PageOrderAndCount()` 验证分页完整且有序；`expiredContextRefreshesWithoutChangingIdentity()` 验证上下文刷新而 PageID 不变；`paidChapterStaysUnavailable()` 验证付费页不会被解析为正文。
+- [x] **2. 验证失败：** `swift test --filter DM5AdapterTests` 应失败。
+- [x] **3. 实现：** 根据实际公开 reader 脚本确认章节接口；获取网站生成的时效参数或通过 WebKit 正常加载正文。解析响应采用已确认格式，不执行不受控接口文本。付费/登录/访问错误明确分类，能力分别登记。
 - [ ] **4. 验证：** 测试通过；`swift run SourceProbe --source dm5 --work-url 'https://www.dm5.com/manhua-yirenzhixia/' --online`，至少验证可访问章节首页、末页及过期刷新；正文仍无法取得时在线验收保持未完成。
-- [ ] **5. 提交：** `feat: adapt dm5 dynamic reading requests`，同时记录验证结果。
+- [x] **5. 提交：** `feat: adapt dm5 dynamic reading requests`，同时记录验证结果。
 
 ## Task 9: 漫画站适配
 

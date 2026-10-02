@@ -38,11 +38,11 @@ do {
             let pages = try await adapter.pages(chapter: chapter, context: context)
             var outcome: [String: Any] = ["ordinal": chapter.ordinal, "pageCount": pages.count]
             var decoded = 0
-            for page in (pages.count > 1 ? [pages.first!, pages.last!] : pages) {
+            for (imageIndex, page) in (pages.count > 1 ? [pages.first!, pages.last!] : pages).enumerated() {
                 do {
                     let response = try await client.send(page.request, sourceID: source.id, priority: .probe)
                     let metadata = try ImageVerifier().verify(response.data)
-                    outcome[decoded == 0 ? "firstImage" : "lastImage"] = ["width": metadata.width, "height": metadata.height, "format": metadata.format]
+                    outcome[imageIndex == 0 ? "firstImage" : "lastImage"] = ["width": metadata.width, "height": metadata.height, "format": metadata.format]
                     decoded += 1
                 } catch { passed = false; outcome["imageError"] = error.localizedDescription }
             }
