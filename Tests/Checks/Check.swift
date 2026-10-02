@@ -11,4 +11,4 @@ public func expectError(_ body: () throws -> Void) throws {
     do { try body() } catch { return }
     throw CheckFailure(description: "Expected an error")
 }
-public func allChecks() -> [Check] { identityChecks }
+public func allChecks() -> [Check] { identityChecks + libraryStoreChecks }

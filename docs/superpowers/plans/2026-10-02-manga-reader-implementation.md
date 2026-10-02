@@ -88,11 +88,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `actor LibraryStore` 提供 `init(databaseURL: URL) throws`、`save(source: Source)`、`sources() -> [Source]`、`save(sourceWork: SourceWork, chapters: [Chapter])`、`createWork(from: SourceWorkID) -> Work`、`link(_: SourceWorkID, to: WorkID)`、`unlink(_: SourceWorkID, from: WorkID)`、`library() -> [Work]`、`sourceWorks(for: WorkID) -> [SourceWork]`、`chapters(for: SourceWorkID) -> [Chapter]`、`save(progress: ReadingProgress)`、`progress(for: SourceWorkID) -> ReadingProgress?`、`save(preferences: ReaderPreferences, for: WorkID)`、`preferences(for: WorkID) -> ReaderPreferences`、`save(settings: UserSettings)`、`settings() -> UserSettings`；各操作 async throws。下载和观察记录在所属任务添加。
 
-- [ ] **1. 写失败测试：** `reopenRetainsSourceScopedProgress()` 保存两源不同进度，重新打开 DB 后分别恢复；`mergeAndSplitRetainRecords()` 验证合并/解除关联不丢进度；`emptyResponseDoesNotEraseChapters()` 验证空响应保留旧目录；`migratesWithoutDataLoss()` 验证初版 schema 重开不重复迁移。
-- [ ] **2. 验证失败：** `swift test --filter LibraryStoreTests`，应因 store 或持久化行为缺失失败。
-- [ ] **3. 实现：** GRDB 串行访问，事务保存关系，唯一约束使用复合身份。新增 `save(binding: ParserBinding, sourceID: SourceID, expectedRevision: Int) -> Bool`，只有源版本匹配才提交。停用/删除源保留 SourceWork 和下载所需的来源快照，使用可恢复的失效状态。
-- [ ] **4. 验证通过：** 上述测试及 `swift test --filter IdentityTests` 全通过；增加 stale revision 的断言 `#expect(saved == false)`。
-- [ ] **5. 提交：** `feat: persist local library and source scoped progress`。
+- [x] **1. 写失败测试：** `reopenRetainsSourceScopedProgress()` 保存两源不同进度，重新打开 DB 后分别恢复；`mergeAndSplitRetainRecords()` 验证合并/解除关联不丢进度；`emptyResponseDoesNotEraseChapters()` 验证空响应保留旧目录；`migratesWithoutDataLoss()` 验证初版 schema 重开不重复迁移。
+- [x] **2. 验证失败：** `swift test --filter LibraryStoreTests`，应因 store 或持久化行为缺失失败。
+- [x] **3. 实现：** GRDB 串行访问，事务保存关系，唯一约束使用复合身份。新增 `save(binding: ParserBinding, sourceID: SourceID, expectedRevision: Int) -> Bool`，只有源版本匹配才提交。停用/删除源保留 SourceWork 和下载所需的来源快照，使用可恢复的失效状态。
+- [x] **4. 验证通过：** 上述测试及 `swift test --filter IdentityTests` 全通过；增加 stale revision 的断言 `#expect(saved == false)`。
+- [x] **5. 提交：** `feat: persist local library and source scoped progress`。
 
 ## Task 3: 请求上下文与有限网络调度
 

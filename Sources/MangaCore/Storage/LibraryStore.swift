@@ -1,0 +1,107 @@
+import Foundation
+
+public actor LibraryStore {
+    private let db: SQLiteConnection
+    public init(databaseURL: URL) throws { db = try SQLiteConnection(url: databaseURL); try Schema.migrate(db) }
+
+    public func saveRecord<T: Encodable>(kind: String, key: String, parent: String? = nil, value: T) throws {
+        let data = try JSONEncoder().encode(value)
+        _ = try db.rows("INSERT INTO records(kind,id,parent,body) VALUES(?,?,?,?) ON CONFLICT(kind,id) DO UPDATE SET parent=excluded.parent,body=excluded.body", [.text(kind), .text(key), parent.map(SQLValue.text) ?? .null, .blob(data)])
+    }
+    public func record<T: Decodable>(kind: String, key: String, as: T.Type) throws -> T? {
+        try db.rows("SELECT body FROM records WHERE kind=? AND id=?", [.text(kind), .text(key)]).first.map { try JSONDecoder().decode(T.self, from: $0) }
+    }
+    public func records<T: Decodable>(kind: String, parent: String? = nil, as: T.Type) throws -> [T] {
+        let values: [SQLValue] = parent.map { [.text(kind), .text($0)] } ?? [.text(kind)]
+        let sql = parent == nil ? "SELECT body FROM records WHERE kind=? ORDER BY id" : "SELECT body FROM records WHERE kind=? AND parent=? ORDER BY id"
+        return try db.rows(sql, values).map { try JSONDecoder().decode(T.self, from: $0) }
+    }
+    public func deleteRecord(kind: String, key: String) throws {
+        _ = try db.rows("DELETE FROM records WHERE kind=? AND id=?", [.text(kind), .text(key)])
+    }
+    public func save(source: Source) throws {
+        var source = source
+        source.baseURL = try canonicalSourceURL(source.baseURL)
+        if try sources().contains(where: { $0.id != source.id && $0.baseURL == source.baseURL }) { throw MangaError.storage("该来源已经添加") }
+        if let old = try self.source(id: source.id), old.baseURL != source.baseURL {
+            source.revision = old.revision + 1; source.binding = nil; source.capabilities = []
+        }
+        try saveRecord(kind: "source", key: source.id.key, value: source)
+    }
+    public func source(id: SourceID) throws -> Source? { try record(kind: "source", key: id.key, as: Source.self) }
+    public func sources() throws -> [Source] { try records(kind: "source", as: Source.self).filter { !$0.removed } }
+    public func save(binding: ParserBinding, sourceID: SourceID, expectedRevision: Int) throws -> Bool {
+        try db.transaction {
+            guard var source = try self.source(id: sourceID), source.revision == expectedRevision, !source.removed else { return false }
+            source.binding = binding; source.capabilities.formUnion(.readable)
+            try saveRecord(kind: "source", key: source.id.key, value: source); return true
+        }
+    }
+    public func remove(sourceID: SourceID) throws {
+        guard var source = try source(id: sourceID) else { return }
+        source.removed = true; source.enabled = false; source.revision += 1; source.binding = nil
+        try saveRecord(kind: "source", key: source.id.key, value: source)
+    }
+    public func save(sourceWork: SourceWork, chapters: [Chapter]) throws {
+        guard chapters.allSatisfy({ $0.id.sourceWorkID == sourceWork.id }) else { throw MangaError.storage("章节来源与作品不一致") }
+        try db.transaction {
+            try saveRecord(kind: "sourceWork", key: sourceWork.id.key, parent: sourceWork.id.sourceID.key, value: sourceWork)
+            for chapter in chapters { try saveRecord(kind: "chapter", key: chapter.id.key, parent: sourceWork.id.key, value: chapter) }
+            if !chapters.isEmpty { try saveRecord(kind: "directory", key: sourceWork.id.key, value: chapters.sorted { $0.ordinal < $1.ordinal }) }
+        }
+    }
+    public func sourceWork(id: SourceWorkID) throws -> SourceWork? { try record(kind: "sourceWork", key: id.key, as: SourceWork.self) }
+    public func allSourceWorks() throws -> [SourceWork] { try records(kind: "sourceWork", as: SourceWork.self) }
+    public func chapter(id: ChapterID) throws -> Chapter? { try record(kind: "chapter", key: id.key, as: Chapter.self) }
+    public func chapters(for id: SourceWorkID) throws -> [Chapter] { try record(kind: "directory", key: id.key, as: [Chapter].self) ?? [] }
+    public func work(id: WorkID) throws -> Work? { try record(kind: "work", key: id.key, as: Work.self) }
+    public func library() throws -> [Work] {
+        try db.rows("SELECT body FROM records WHERE kind='work' AND EXISTS(SELECT 1 FROM associations WHERE work_id=records.id)").map { try JSONDecoder().decode(Work.self, from: $0) }.sorted { $0.addedAt > $1.addedAt }
+    }
+    public func sourceWorks(for id: WorkID) throws -> [SourceWork] {
+        try db.rows("SELECT body FROM records WHERE kind='sourceWork' AND EXISTS(SELECT 1 FROM associations WHERE source_work=records.id AND work_id=?)", [.text(id.key)]).map { try JSONDecoder().decode(SourceWork.self, from: $0) }
+    }
+    public func workID(for sourceWorkID: SourceWorkID) throws -> WorkID? {
+        guard let data = try db.rows("SELECT work_id FROM associations WHERE source_work=?", [.text(sourceWorkID.key)]).first, let text = String(data: data, encoding: .utf8), let uuid = UUID(uuidString: text) else { return nil }
+        return WorkID(rawValue: uuid)
+    }
+    public func createWork(from id: SourceWorkID) throws -> Work {
+        if let workID = try workID(for: id), let work = try work(id: workID) { return work }
+        guard let sourceWork = try sourceWork(id: id) else { throw MangaError.storage("作品不存在") }
+        return try db.transaction {
+            let work = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id)
+            try saveRecord(kind: "work", key: work.id.key, value: work)
+            _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?)", [.text(id.key), .text(work.id.key)])
+            return work
+        }
+    }
+    public func link(_ id: SourceWorkID, to workID: WorkID) throws {
+        guard try sourceWork(id: id) != nil, try work(id: workID) != nil else { throw MangaError.storage("作品不存在") }
+        _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?) ON CONFLICT(source_work) DO UPDATE SET work_id=excluded.work_id", [.text(id.key), .text(workID.key)])
+    }
+    public func unlink(_ id: SourceWorkID, from workID: WorkID) throws {
+        guard try self.workID(for: id) == workID else { return }
+        try db.transaction {
+            _ = try db.rows("DELETE FROM associations WHERE source_work=? AND work_id=?", [.text(id.key), .text(workID.key)])
+            guard let sourceWork = try sourceWork(id: id) else { return }
+            let newWork = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id)
+            try saveRecord(kind: "work", key: newWork.id.key, value: newWork)
+            _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?)", [.text(id.key), .text(newWork.id.key)])
+            try save(preferences: preferences(for: workID), for: newWork.id)
+        }
+    }
+    public func save(progress: ReadingProgress) throws {
+        guard progress.pageID.chapterID == progress.chapterID else { throw MangaError.storage("阅读页面与章节不一致") }
+        try db.transaction {
+            try saveRecord(kind: "progress", key: progress.sourceWorkID.key, value: progress)
+            if let id = try workID(for: progress.sourceWorkID), var work = try work(id: id) {
+                work.preferredSourceWorkID = progress.sourceWorkID; try saveRecord(kind: "work", key: id.key, value: work)
+            }
+        }
+    }
+    public func progress(for id: SourceWorkID) throws -> ReadingProgress? { try record(kind: "progress", key: id.key, as: ReadingProgress.self) }
+    public func save(preferences: ReaderPreferences, for id: WorkID) throws { try saveRecord(kind: "preferences", key: id.key, value: preferences) }
+    public func preferences(for id: WorkID) throws -> ReaderPreferences { try record(kind: "preferences", key: id.key, as: ReaderPreferences.self) ?? ReaderPreferences() }
+    public func save(settings: UserSettings) throws { try saveRecord(kind: "settings", key: "local", value: settings) }
+    public func settings() throws -> UserSettings { try record(kind: "settings", key: "local", as: UserSettings.self) ?? UserSettings() }
+}
