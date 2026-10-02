@@ -148,11 +148,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** GuaziAdapter 实现任务 4 SourceAdapter，id=`guazi-html`。`BuiltinSources.candidates() -> [Source]` 输出三站候选且未验证能力不标可用。SourceProbe 参数 `--source guazi --work-url <URL> --online`，输出各能力和首图解码结果；不打印 Cookie 或签名。
 
-- [ ] **1. 写失败测试：** `guaziDirectoryAndPages()` 验证 comic.php / chapter.php 的语义 ID、目录顺序及 `.reading-image`；`guaziCDNRestrictionReported()` 断言正文 403 保留 accessFailure；`browseAndSearchCapabilitiesAreIndependent()` 验证仅确认后启用搜索与浏览。
-- [ ] **2. 验证失败：** `swift test --filter GuaziAdapterTests` 应失败。
-- [ ] **3. 实现：** 首先重新读取站点正常浏览流程确认搜索/浏览入口；复用真实页面提供的目录和图片链接。通过任务 3、6 验证普通浏览上下文能否读取 CDN；仍失败则保存证据和受限状态，不能宣称阅读适配完成。
+- [x] **1. 写失败测试：** `guaziDirectoryAndPages()` 验证 comic.php / chapter.php 的语义 ID、目录顺序及 `.reading-image`；`guaziCDNRestrictionReported()` 断言正文 403 保留 accessFailure；`browseAndSearchCapabilitiesAreIndependent()` 验证仅确认后启用搜索与浏览。
+- [x] **2. 验证失败：** `swift test --filter GuaziAdapterTests` 应失败。
+- [x] **3. 实现：** 首先重新读取站点正常浏览流程确认搜索/浏览入口；复用真实页面提供的目录和图片链接。通过任务 3、6 验证普通浏览上下文能否读取 CDN；仍失败则保存证据和受限状态，不能宣称阅读适配完成。
 - [ ] **4. 验证：** fixture 测试全通过；执行 `swift run SourceProbe --source guazi --work-url 'https://www.guazimanhua.com/comic.php?id=26470' --online`，报告必须包含实际首页/详情/章节/图片状态。只有首图解码和章节页序成功才通过在线阅读验收。
-- [ ] **5. 提交：** `feat: add guazi adapter and explicit source diagnostics`；source-validation 保留实际日期、环境和失败原因。
+- [x] **5. 提交：** `feat: add guazi adapter and explicit source diagnostics`；source-validation 保留实际日期、环境和失败原因。
 
 ## Task 8: DM5 动态阅读适配
 
