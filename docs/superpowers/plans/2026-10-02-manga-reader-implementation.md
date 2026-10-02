@@ -100,11 +100,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `ResourceRequest(url: URL, referer: URL?, headers: [String:String], accessContextID: UUID?)`；`ResourceResponse(data: Data, finalURL: URL, statusCode: Int, headers: [String:String])`；`HTTPClient.send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse`。`RequestPriority` 顺序为 reading、probe、search、download、prefetch。`AccessContextStore` 以对应 SourceID 保存凭据，调用方不持有明文凭据。
 
-- [ ] **1. 写失败测试：** `limitedConcurrencyAndPriority()` 断言单源最多 2 / 全局最多 8；`retryAfterAndCancellation()` 验证 429 退避期间可取消，最多重试 2 次；`crossOriginRedirectDropsSecrets()` 断言 `#expect(redirected.authorization == nil)`；`sourceErrorsStayDistinct()` 验证 403、超时、网络离线的不同错误。
-- [ ] **2. 验证失败：** `swift test --filter HTTPClientTests`，应因调度和分类未实现失败。
-- [ ] **3. 实现：** URLSession 与可注入传输/时钟，普通请求超时 12 秒；退避最长 60 秒，尊重有效 Retry-After。凭据只适用于确认的源 origin；跨 origin 重定向不能自动携带敏感头。源可明确登记图片 CDN，Referer 与凭据允许范围分别处理。日志仅记录源、状态和脱敏路径。
-- [ ] **4. 验证通过：** 相同测试全部通过；取消请求不能留下持有并发额度的任务。
-- [ ] **5. 提交：** `feat: add scoped requests and bounded scheduling`。
+- [x] **1. 写失败测试：** `limitedConcurrencyAndPriority()` 断言单源最多 2 / 全局最多 8；`retryAfterAndCancellation()` 验证 429 退避期间可取消，最多重试 2 次；`crossOriginRedirectDropsSecrets()` 断言 `#expect(redirected.authorization == nil)`；`sourceErrorsStayDistinct()` 验证 403、超时、网络离线的不同错误。
+- [x] **2. 验证失败：** `swift test --filter HTTPClientTests`，应因调度和分类未实现失败。
+- [x] **3. 实现：** URLSession 与可注入传输/时钟，普通请求超时 12 秒；退避最长 60 秒，尊重有效 Retry-After。凭据只适用于确认的源 origin；跨 origin 重定向不能自动携带敏感头。源可明确登记图片 CDN，Referer 与凭据允许范围分别处理。日志仅记录源、状态和脱敏路径。
+- [x] **4. 验证通过：** 相同测试全部通过；取消请求不能留下持有并发额度的任务。
+- [x] **5. 提交：** `feat: add scoped requests and bounded scheduling`。
 
 ## Task 4: 解析协议、通用模板与图片判定
 
