@@ -1,0 +1,454 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		73336AB515456F94A8B91A1A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DED9427851CE529E12ACC586 /* AppDelegate.swift */; };
+		85868E3EE7FE38DFF63BEDB9 /* MangaIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42B87FDE79C818016176017 /* MangaIOSApp.swift */; };
+		AC1D23CDECC5DB36F05CFBA4 /* MangaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 5656E951B58100DA36FD1195 /* MangaUI */; };
+		D54BDEB20E3BBAC951448D0A /* MangaUI in Frameworks */ = {isa = PBXBuildFile; productRef = 604C5F34A59AA05A6BDA4541 /* MangaUI */; };
+		E6E74F20C588783CD82176E6 /* MangaMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12719598AFC5E71C5E08CF5 /* MangaMacApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		24532548F562E18185C98CC5 /* MangaIOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MangaIOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		556D54ACA6A7F7BC5E24CB9F /* Chasing-Manga-Artifact */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Chasing-Manga-Artifact"; path = .; sourceTree = SOURCE_ROOT; };
+		7D8E8EF0A9823F599F5490EE /* MangaMac.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MangaMac.entitlements; sourceTree = "<group>"; };
+		91CF1EE4AB70852B82BEDE0A /* MangaMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MangaMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A12719598AFC5E71C5E08CF5 /* MangaMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaMacApp.swift; sourceTree = "<group>"; };
+		D69FBF6AC2A2408A20F88A4D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DED9427851CE529E12ACC586 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F31E36BBBAA79D8F59F8463F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F42B87FDE79C818016176017 /* MangaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MangaIOSApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		9529A482B933BA0E4BD1396D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC1D23CDECC5DB36F05CFBA4 /* MangaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E844F26D0AEB8FFC056306E3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D54BDEB20E3BBAC951448D0A /* MangaUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		01613606EE239CF4EC85F1ED = {
+			isa = PBXGroup;
+			children = (
+				0552CDFC8C1E4A3F6D09B163 /* Apps */,
+				5164C2A3FEFCE969F3EE5B2F /* Packages */,
+				5E95739B85D014B67F67361A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0552CDFC8C1E4A3F6D09B163 /* Apps */ = {
+			isa = PBXGroup;
+			children = (
+				7863F53E87A3A5D59449C442 /* iOS */,
+				8D9DCB92DD853C8900033278 /* macOS */,
+			);
+			path = Apps;
+			sourceTree = "<group>";
+		};
+		5164C2A3FEFCE969F3EE5B2F /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				556D54ACA6A7F7BC5E24CB9F /* Chasing-Manga-Artifact */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		5E95739B85D014B67F67361A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				24532548F562E18185C98CC5 /* MangaIOS.app */,
+				91CF1EE4AB70852B82BEDE0A /* MangaMac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7863F53E87A3A5D59449C442 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				DED9427851CE529E12ACC586 /* AppDelegate.swift */,
+				D69FBF6AC2A2408A20F88A4D /* Info.plist */,
+				F42B87FDE79C818016176017 /* MangaIOSApp.swift */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		8D9DCB92DD853C8900033278 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				F31E36BBBAA79D8F59F8463F /* Info.plist */,
+				7D8E8EF0A9823F599F5490EE /* MangaMac.entitlements */,
+				A12719598AFC5E71C5E08CF5 /* MangaMacApp.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0A60C83D6446A64E7BC5C515 /* MangaIOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A148D94E0627D0D9F88CC52 /* Build configuration list for PBXNativeTarget "MangaIOS" */;
+			buildPhases = (
+				D1C01C674EF5CE9038A4E9A5 /* Sources */,
+				E844F26D0AEB8FFC056306E3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MangaIOS;
+			packageProductDependencies = (
+				604C5F34A59AA05A6BDA4541 /* MangaUI */,
+			);
+			productName = MangaIOS;
+			productReference = 24532548F562E18185C98CC5 /* MangaIOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		5317935A8E1727C0C61AE9C6 /* MangaMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8ADB96431488DB7F8375B212 /* Build configuration list for PBXNativeTarget "MangaMac" */;
+			buildPhases = (
+				B48AA3B5B0071FDC6060AE50 /* Sources */,
+				9529A482B933BA0E4BD1396D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MangaMac;
+			packageProductDependencies = (
+				5656E951B58100DA36FD1195 /* MangaUI */,
+			);
+			productName = MangaMac;
+			productReference = 91CF1EE4AB70852B82BEDE0A /* MangaMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		6146B58D9611582B28A24008 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0A60C83D6446A64E7BC5C515 = {
+						ProvisioningStyle = Automatic;
+					};
+					5317935A8E1727C0C61AE9C6 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 73821CC6215D68A8BA8D2050 /* Build configuration list for PBXProject "ChasingManga" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 01613606EE239CF4EC85F1ED;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3F64FCD1745ED23C65288F4C /* XCLocalSwiftPackageReference "." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5E95739B85D014B67F67361A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0A60C83D6446A64E7BC5C515 /* MangaIOS */,
+				5317935A8E1727C0C61AE9C6 /* MangaMac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B48AA3B5B0071FDC6060AE50 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6E74F20C588783CD82176E6 /* MangaMacApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D1C01C674EF5CE9038A4E9A5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				73336AB515456F94A8B91A1A /* AppDelegate.swift in Sources */,
+				85868E3EE7FE38DFF63BEDB9 /* MangaIOSApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		25CFA0ED043901B7940B486C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Apps/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasingmanga.local.ios;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		42FBB78DBF3E951E21DE39F2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		9116EC0203AFB8D33A880246 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/MangaMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = Apps/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasingmanga.local.mac;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		93964280AA35C07958D36F0F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Apps/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasingmanga.local.ios;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		98D5E6F8EF8124AC8D4BEF27 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Apps/macOS/MangaMac.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = Apps/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.chasingmanga.local.mac;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B4D3B509B890F9FB752B5A05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A148D94E0627D0D9F88CC52 /* Build configuration list for PBXNativeTarget "MangaIOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25CFA0ED043901B7940B486C /* Debug */,
+				93964280AA35C07958D36F0F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		73821CC6215D68A8BA8D2050 /* Build configuration list for PBXProject "ChasingManga" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B4D3B509B890F9FB752B5A05 /* Debug */,
+				42FBB78DBF3E951E21DE39F2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8ADB96431488DB7F8375B212 /* Build configuration list for PBXNativeTarget "MangaMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				98D5E6F8EF8124AC8D4BEF27 /* Debug */,
+				9116EC0203AFB8D33A880246 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		3F64FCD1745ED23C65288F4C /* XCLocalSwiftPackageReference "." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = .;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5656E951B58100DA36FD1195 /* MangaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MangaUI;
+		};
+		604C5F34A59AA05A6BDA4541 /* MangaUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MangaUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 6146B58D9611582B28A24008 /* Project object */;
+}

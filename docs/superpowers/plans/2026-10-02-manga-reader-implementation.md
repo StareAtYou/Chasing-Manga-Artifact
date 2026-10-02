@@ -256,11 +256,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** 两入口初始化 AppContainer，首次启动只登记候选源，不自动声称全源可读；启动/激活/退出调用对应服务。iOS AppDelegate 接收后台传输 completion；后台刷新 ID 为 `com.chasingmanga.local.refresh`，后台 URLSession ID 为 `com.chasingmanga.local.download`。Bundle ID 分别 `com.chasingmanga.local.ios`、`com.chasingmanga.local.mac`；开发签名 Team 由用户本机设置，不提交私有账户值。
 
-- [ ] **1. 写验证脚本：** check-environment 检测完整 Xcode、Swift 和 XcodeGen；缺少 Xcode 时退出非 0 并报告具体路径，不安装 Xcode 或修改系统选择。generate-project 固定 XcodeGen 2.46.0，生成包含两个共享 scheme 的工程。
-- [ ] **2. 验证缺失环境：** 当前机器运行脚本预期报告缺少完整 Xcode；这不是构建成功证据。
-- [ ] **3. 实现：** 配置本地 SwiftPM 包、iOS 17 / macOS 14、必要网络权限与后台标识；Mac 启用 App Sandbox 网络客户端权限。工程不包含模拟内容替代线上功能，不包含同步能力。生成工程和 schemes 提交，普通使用者不需 XcodeGen 即可打开工程。
+- [x] **1. 写验证脚本：** check-environment 检测完整 Xcode、Swift 和 XcodeGen；缺少 Xcode 时退出非 0 并报告具体路径，不安装 Xcode 或修改系统选择。generate-project 固定 XcodeGen 2.46.0，生成包含两个共享 scheme 的工程。
+- [x] **2. 验证缺失环境：** 当前机器运行脚本预期报告缺少完整 Xcode；这不是构建成功证据。
+- [x] **3. 实现：** 配置本地 SwiftPM 包、iOS 17 / macOS 14、必要网络权限与后台标识；Mac 启用 App Sandbox 网络客户端权限。工程不包含模拟内容替代线上功能，不包含同步能力。生成工程和 schemes 提交，普通使用者不需 XcodeGen 即可打开工程。
 - [ ] **4. 验证构建：** 完整 Xcode 下运行 `xcodebuild -project ChasingManga.xcodeproj -scheme MangaMac -destination 'platform=macOS' build CODE_SIGNING_ALLOWED=NO` 和 `xcodebuild -project ChasingManga.xcodeproj -scheme MangaIOS -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO`，两者均 BUILD SUCCEEDED 才勾选。
-- [ ] **5. 提交：** `build: provide native macOS and iOS app projects`；安装运行仍需任务 17 验证。
+- [x] **5. 提交：** `build: provide native macOS and iOS app projects`；安装运行仍需任务 17 验证。
 
 ## Task 17: 用户流程、性能验证与开源使用文档
 
