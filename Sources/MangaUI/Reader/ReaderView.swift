@@ -43,7 +43,7 @@ public struct ReaderView: View {
                     .id(state.preferences.mode).background(state.preferences.background == .dark ? Color.black : state.preferences.background == .light ? Color.white : Color.primary.opacity(0.05))
             } else if let error = model.error { ContentUnavailableView { Label("无法打开章节", systemImage: "exclamationmark.triangle") } description: { Text(error) } actions: { Button("重试") { Task { await model.load() } } } }
             else { ProgressView("读取章节…") }
-        }.navigationTitle(model.state?.chapter.title ?? "阅读").toolbar { ReaderToolbar(model: model) }
+        }.accessibilityIdentifier("reader").navigationTitle(model.state?.chapter.title ?? "阅读").toolbar { ReaderToolbar(model: model) }
             .task { await model.load() }.onDisappear { Task { await model.close() } }
             .onChange(of: scenePhase) { _, value in if value != .active, let state = model.state { Task { try? await model.app.store.save(progress: state.progress) } } }
             #if os(macOS)
@@ -69,6 +69,8 @@ struct ComicPageView: View {
             else if tiles.isEmpty { ProgressView("第 \(page.ordinal + 1) 页").frame(width: width, height: max(240, width * aspect)) }
             else { VStack(spacing: 0) { ForEach(Array(tiles.enumerated()), id: \.offset) { _, tile in Image(decorative: tile.image, scale: 1).resizable().frame(width: width, height: width * Double(tile.frame.height) / Double(tile.frame.width)) } } }
         }
+        .accessibilityIdentifier("comic-page-\(page.ordinal)")
+        .accessibilityLabel("第 \(page.ordinal + 1) 页漫画")
         .overlay(alignment: .top) { Color.clear.frame(height: 1).offset(y: width * aspect * restoredFraction).id("restore-" + page.id.key) }
         .task(id: retry) {
             do {

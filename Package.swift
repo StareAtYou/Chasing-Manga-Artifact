@@ -11,7 +11,7 @@ let package = Package(
         .target(name: "MangaCore", dependencies: [.product(name: "SwiftSoup", package: "SwiftSoup")]),
         .target(name: "MangaPlatform", dependencies: ["MangaCore"]),
         .executableTarget(name: "SourceProbe", dependencies: ["MangaCore", "MangaPlatform"], path: "Tools/SourceProbe"),
-        .target(name: "MangaChecksSupport", dependencies: ["MangaCore", "MangaPlatform"], path: "Tests/Checks", resources: [.copy("Fixtures")]),
+        .target(name: "MangaChecksSupport", dependencies: ["MangaCore", "MangaPlatform", "MangaUI"], path: "Tests/Checks", resources: [.copy("Fixtures")]),
         .executableTarget(name: "MangaChecks", dependencies: ["MangaChecksSupport"], path: "Tests/PortableChecks"),
         .testTarget(name: "MangaCoreTests", dependencies: ["MangaCore", "MangaChecksSupport"]),
         .testTarget(name: "MangaPlatformTests", dependencies: ["MangaPlatform", "MangaChecksSupport"])

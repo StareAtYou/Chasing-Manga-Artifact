@@ -11,7 +11,7 @@ struct ChapterListView: View {
         List { Section { HStack { SourceBadge(name: app.sourceName(sourceWorkID.sourceID)); Spacer(); Text("\(chapters.count) 章").foregroundStyle(.secondary) } }
             if !resumeCandidates.isEmpty { Section("其他来源的续读候选 · 请自行确认") { ForEach(chapters.filter { resumeCandidates.contains($0.id) }) { chapter in Button(chapter.title) { app.path.append(.reader(chapter.id)) } } } }
             if loading { ProgressView("读取章节目录…") }
-            ForEach(chapters) { chapter in HStack { Button { app.path.append(.reader(chapter.id)) } label: { HStack { Text(chapter.title); Spacer(); if chapter.access != .available { Image(systemName: "lock") } } }.buttonStyle(.plain)
+            ForEach(chapters) { chapter in HStack { Button { app.path.append(.reader(chapter.id)) } label: { HStack { Text(chapter.title); Spacer(); if chapter.access != .available { Image(systemName: "lock") } }.contentShape(Rectangle()) }.buttonStyle(.borderless).accessibilityIdentifier("chapter-\(chapter.ordinal)")
                 Button { Task { await app.perform { let pages = try await app.sources.pages(chapter: chapter); _ = try await app.downloads.enqueue(chapter: chapter, pages: pages); try await app.refresh() } } } label: { Label("下载 \(chapter.title)", systemImage: "arrow.down.circle") }.labelStyle(.iconOnly).buttonStyle(.borderless).disabled(chapter.access != .available)
             } }
             if !loading && chapters.isEmpty { EmptyState(title: "未取得章节", icon: "list.bullet", message: "请检查来源状态，或在源管理中打开网站完成验证。") }

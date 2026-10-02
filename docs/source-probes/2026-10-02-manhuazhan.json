@@ -1,0 +1,87 @@
+{
+  "browseCount" : 136,
+  "chapterCount" : 991,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 500,
+        "width" : 640
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 254,
+        "width" : 640
+      },
+      "ordinal" : 0,
+      "pageCount" : 36
+    },
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1791,
+        "width" : 800
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1618,
+        "width" : 800
+      },
+      "ordinal" : 990,
+      "pageCount" : 4
+    }
+  ],
+  "date" : "2026-10-02T06:22:29Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "500"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "s2.bzcdn.net",
+      "status" : "200"
+    },
+    {
+      "host" : "s2.bzcdn.net",
+      "status" : "200"
+    },
+    {
+      "host" : "www.manhuazhan.com",
+      "status" : "200"
+    },
+    {
+      "host" : "s2.bzcdn.net",
+      "status" : "200"
+    },
+    {
+      "host" : "s2.bzcdn.net",
+      "status" : "200"
+    }
+  ],
+  "searchError" : "来源限制访问（HTTP 500）",
+  "source" : "manhuazhan"
+}

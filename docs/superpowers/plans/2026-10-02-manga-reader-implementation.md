@@ -268,11 +268,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** UI 测试通过启动参数注入本地最小样本源和生成图片，生产默认入口不注册测试源。EndToEndFlowTests 串起实际服务：搜索→选源→书架→阅读→下载→更新→重开；online probe 另外执行，不用本地流程冒充在线验证。
 
-- [ ] **1. 写失败测试：** `chooseSourceReadAndResume()` 验证两端来源卡片到阅读位置；`offlineChapterAfterRestart()` 验证重开断网可读；`customSourceBindThenRead()` 验证自定义绑定复用；`updateAndDeniedNotification()` 验证更新列表仍可用。交互测试覆盖滚动/翻页、RTL、Mac 双页和缩放；不用逐个 SwiftUI 视图写重复测试。
-- [ ] **2. 验证失败：** `swift test --filter EndToEndFlowTests` 在未完成串接时应失败；Xcode 下 UI 测试在未接入入口时应失败。修复真实缺口，不改测试绕开产品行为。
-- [ ] **3. 完成集成与文档：** 写清源能力、已知限制、完整 Xcode 与签名安装步骤；MIT 仅覆盖代码，第三方依赖列许可证。贡献文档说明内置解析协议、样本脱敏、HTTP 200 错误页和在线验证要求。加入 UI 测试 target 后重新生成并提交任务 16 的工程及 schemes。CI 使用 macOS runner 检查共享测试和双平台编译；配置提交不等于 CI 已在线运行。首版不自动发布、推送仓库或上架。
+- [x] **1. 写失败测试：** `chooseSourceReadAndResume()` 验证两端来源卡片到阅读位置；`offlineChapterAfterRestart()` 验证重开断网可读；`customSourceBindThenRead()` 验证自定义绑定复用；`updateAndDeniedNotification()` 验证更新列表仍可用。交互测试覆盖滚动/翻页、RTL、Mac 双页和缩放；不用逐个 SwiftUI 视图写重复测试。
+- [x] **2. 验证失败：** `swift test --filter EndToEndFlowTests` 在未完成串接时应失败；Xcode 下 UI 测试在未接入入口时应失败。修复真实缺口，不改测试绕开产品行为。
+- [x] **3. 完成集成与文档：** 写清源能力、已知限制、完整 Xcode 与签名安装步骤；MIT 仅覆盖代码，第三方依赖列许可证。贡献文档说明内置解析协议、样本脱敏、HTTP 200 错误页和在线验证要求。加入 UI 测试 target 后重新生成并提交任务 16 的工程及 schemes。CI 使用 macOS runner 检查共享测试和双平台编译；配置提交不等于 CI 已在线运行。首版不自动发布、推送仓库或上架。
 - [ ] **4. 最终验证：** `swift test`、任务 16 两条 build 命令、`xcodebuild -project ChasingManga.xcodeproj -scheme MangaMac -destination 'platform=macOS' test CODE_SIGNING_ALLOWED=NO`、iOS 实际可用模拟器 UDID 的同等 test 命令及三源在线 probe。运行前由 `xcodebuild -showdestinations` 获取 UDID，不写虚构设备。实际启动两端，断网、通知拒绝、下载中断、重开与长图峰值逐项记录。测量首图时间、翻页等待及内存，记录设备/网络；无完整 Xcode 时这些检查保留未完成。`git diff --check` 无输出且退出 0。
-- [ ] **5. 提交：** `docs: verify manga workflows and document local installation`。最终报告分别列通过、未通过和环境未执行项；仍有指定源阅读问题或双平台未验证时不能称完整首版已经交付。
+- [x] **5. 提交：** `docs: verify manga workflows and document local installation`。最终报告分别列通过、未通过和环境未执行项；仍有指定源阅读问题或双平台未验证时不能称完整首版已经交付。
 
 ## 设计覆盖自审
 

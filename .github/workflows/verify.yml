@@ -1,0 +1,21 @@
+name: Verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26.2
+        run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
+      - name: Shared native and portable checks
+        run: |
+          swift test
+          swift run MangaChecks
+      - name: Native macOS build
+        run: xcodebuild -project ChasingManga.xcodeproj -scheme MangaMac -destination 'platform=macOS' build CODE_SIGNING_ALLOWED=NO
+      - name: Native iOS Simulator build
+        run: xcodebuild -project ChasingManga.xcodeproj -scheme MangaIOS -destination 'generic/platform=iOS Simulator' build CODE_SIGNING_ALLOWED=NO

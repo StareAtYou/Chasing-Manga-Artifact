@@ -1,0 +1,387 @@
+{
+  "browseCount" : 236,
+  "chapterCount" : 4,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1526,
+        "width" : 900
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1473,
+        "width" : 942
+      },
+      "ordinal" : 0,
+      "pageCount" : 39
+    },
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1331,
+        "width" : 900
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1526,
+        "width" : 900
+      },
+      "ordinal" : 3,
+      "pageCount" : 36
+    }
+  ],
+  "date" : "2026-10-02T06:22:29Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "manhua1023-61-174-50-98.cdndm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "manhua1023-61-174-50-98.cdndm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.dm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "manhua1023-61-174-50-99.cdndm5.com",
+      "status" : "200"
+    },
+    {
+      "host" : "manhua1023-61-174-50-99.cdndm5.com",
+      "status" : "200"
+    }
+  ],
+  "searchCount" : 25,
+  "source" : "dm5"
+}

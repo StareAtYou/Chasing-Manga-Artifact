@@ -1,0 +1,87 @@
+{
+  "browseCount" : 41,
+  "chapterCount" : 812,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1354,
+        "width" : 800
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1684,
+        "width" : 750
+      },
+      "ordinal" : 0,
+      "pageCount" : 18
+    },
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1906,
+        "width" : 1200
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1600,
+        "width" : 2015
+      },
+      "ordinal" : 811,
+      "pageCount" : 19
+    }
+  ],
+  "date" : "2026-10-02T06:22:29Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "img.guazicdn.com",
+      "status" : "200"
+    },
+    {
+      "host" : "img.guazicdn.com",
+      "status" : "200"
+    },
+    {
+      "host" : "www.guazimanhua.com",
+      "status" : "200"
+    },
+    {
+      "host" : "img.guazicdn.com",
+      "status" : "200"
+    },
+    {
+      "host" : "img.guazicdn.com",
+      "status" : "200"
+    }
+  ],
+  "searchCount" : 2,
+  "source" : "guazi"
+}

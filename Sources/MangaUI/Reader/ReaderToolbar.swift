@@ -14,7 +14,7 @@ struct ReaderToolbar: ToolbarContent {
                 #endif
                 Divider(); Button("从左向右") { Task { await model.direction(.leftToRight) } }; Button("从右向左") { Task { await model.direction(.rightToLeft) } }
                 Divider(); Button("跟随系统背景") { Task { await model.background(.system) } }; Button("浅色背景") { Task { await model.background(.light) } }; Button("深色背景") { Task { await model.background(.dark) } }
-            } label: { Label("阅读设置", systemImage: "text.book.closed") }
+            } label: { Label("阅读设置", systemImage: "text.book.closed") }.accessibilityIdentifier("reader-settings")
         }
     }
 }

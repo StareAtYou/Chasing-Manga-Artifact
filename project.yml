@@ -43,12 +43,36 @@ targets:
         INFOPLIST_FILE: Apps/macOS/Info.plist
         CODE_SIGN_ENTITLEMENTS: Apps/macOS/MangaMac.entitlements
         ENABLE_APP_SANDBOX: YES
+  MangaIOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Apps/UITests]
+    dependencies:
+      - target: MangaIOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chasingmanga.local.ios.uitests
+        GENERATE_INFOPLIST_FILE: YES
+  MangaMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [Apps/UITests]
+    dependencies:
+      - target: MangaMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chasingmanga.local.mac.uitests
+        GENERATE_INFOPLIST_FILE: YES
 schemes:
   MangaIOS:
     build:
       targets:
         MangaIOS: all
+    test:
+      targets: [MangaIOSUITests]
   MangaMac:
     build:
       targets:
         MangaMac: all
+    test:
+      targets: [MangaMacUITests]
