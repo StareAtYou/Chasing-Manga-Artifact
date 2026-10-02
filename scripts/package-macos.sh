@@ -13,7 +13,7 @@ if [[ "$MANGA_ARCH" == universal ]]; then
     codesign --force --sign - --entitlements Apps/macOS/MangaMac.entitlements "$MANGA_OUTPUT/ChasingManga.app"
     codesign --verify --deep --strict "$MANGA_OUTPUT/ChasingManga.app"
     ditto -c -k --sequesterRsrc --keepParent "$MANGA_OUTPUT/ChasingManga.app" "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip"
-    shasum -a 256 "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip" > "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-universal.zip.sha256"
+    (cd "$MANGA_OUTPUT" && shasum -a 256 "ChasingManga-$MANGA_VERSION-macOS-universal.zip" > "ChasingManga-$MANGA_VERSION-macOS-universal.zip.sha256")
     echo "Packaged: $MANGA_OUTPUT/ChasingManga.app (arm64 + x86_64)"
     exit 0
 fi
@@ -37,5 +37,5 @@ codesign --force --sign - --entitlements Apps/macOS/MangaMac.entitlements "$MANG
 codesign --verify --deep --strict "$MANGA_APP"
 plutil -lint "$MANGA_APP/Contents/Info.plist"
 ditto -c -k --sequesterRsrc --keepParent "$MANGA_APP" "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-$MANGA_ARCH.zip"
-shasum -a 256 "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-$MANGA_ARCH.zip" > "$MANGA_OUTPUT/ChasingManga-$MANGA_VERSION-macOS-$MANGA_ARCH.zip.sha256"
+(cd "$MANGA_OUTPUT" && shasum -a 256 "ChasingManga-$MANGA_VERSION-macOS-$MANGA_ARCH.zip" > "ChasingManga-$MANGA_VERSION-macOS-$MANGA_ARCH.zip.sha256")
 echo "Packaged: $MANGA_APP ($MANGA_ARCH)"

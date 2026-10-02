@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。当前为开发预览：共享服务和 macOS UI 模块可构建，完整双端应用验收尚未完成。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.0 已补齐日常使用流程，并提供可直接运行的 macOS 本地安装包；iOS 工程与共享功能已实现，原生构建/设备验收需要完整 Xcode，当前尚未完成。
 
 ## 功能
 
@@ -11,6 +11,18 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 - 纵向滚动、逐页、左右阅读方向、macOS 双页、缩放与页内进度。
 - 优先当前页、有限预加载、独立缓存/离线目录，过期资源重新取地址。
 
+## macOS 直接使用
+
+解压 `ChasingManga-0.2.0-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+
+自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
+
+```sh
+MANGA_ARCH=universal scripts/package-macos.sh
+```
+
+结果在 `release/`。完整交付与真实使用记录见 [可用性验收](docs/usability-completion.md)。
+
 ## 编译运行
 
 直接打开 `ChasingManga.xcodeproj`，选择 `MangaMac` 或 `MangaIOS` scheme。需要完整 Xcode 16.3+（Swift 6.1+）；iOS 真机在 Signing & Capabilities 中选择自己的 Team。详见 [安装说明](docs/build-and-install.md)。无需服务器、登录、同步服务或 XcodeGen。
@@ -20,15 +32,15 @@ swift run MangaChecks
 swift build --target MangaUI
 ```
 
-只有 Command Line Tools 时，可执行这两项共享验证；不能替代原生应用构建、Swift Testing 或设备验收。重新生成工程需 XcodeGen **2.46.0**：`scripts/generate-project.sh`。
+只有 Command Line Tools 时，可执行共享检查、UI 构建和上述 macOS 包装；无法执行 iOS 构建或本机缺少运行时的 Swift Testing/XCTest。重新生成工程需 XcodeGen **2.46.0**：`scripts/generate-project.sh`。
 
 ## 来源状态和验证
 
-见 [真实来源验证](docs/source-validation.md) 和 [验收记录](docs/verification.md)。每个源、每个能力分别验证。首次启动只登记候选源；在“源管理”中检测浏览/搜索能力，或添加作品样本验证阅读。不承诺任何网站所有漫画永久免费或持续可用。漫画站搜索当前遇到安全验证；部分 DM5 作品存在地区/付费限制。
+见 [真实来源验证](docs/source-validation.md) 和 [验收记录](docs/verification.md)。每个源、每个能力分别验证。首次启动登记候选源并自动检查浏览/搜索；可直接打开浏览/搜索作品，或添加作品样本检测并绑定正文解析方式。不承诺任何网站所有漫画永久免费或持续可用。漫画站搜索当前遇到安全验证；部分 DM5 作品存在地区/付费限制。
 
 网站正文地址来自正常公开页面或其正常请求。不会执行用户插件、生成任意解析脚本或绕过登录/付费限制。HTTP 自定义源也可使用，网址与内容传输的安全性取决于该来源；优先使用 HTTPS。
 
-长图采用 ImageIO 有上限的缩略解码后分块显示，最大解码维度 4096。超长图可能降低清晰度；内存限制不等同于整个 App 的实测峰值。含 Cookie 的下载使用可控制重定向的前台传输，应用挂起后可能暂停。
+长图采用 ImageIO 有上限的缩略解码后分块显示，使用 8 Mi 像素预算与分块显示。超过预算的图片可能降低采样清晰度；64 MiB 解码缓存预算不等同于整个 App 的实测峰值。含 Cookie 的下载使用可控制重定向的前台传输，应用挂起后可能暂停。
 
 ## 开源
 
