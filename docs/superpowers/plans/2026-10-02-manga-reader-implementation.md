@@ -184,11 +184,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `SearchService.search(query: String, sourceIDs: [SourceID], queryID: UUID) -> AsyncStream<SearchEvent>`；事件 results、failure、finished 均包含 queryID，results 保留 SourceID。`AssociationService.candidates(for: SourceWork, among: [SourceWork]) -> [AssociationCandidate]`；`confirmLink(_: SourceWorkID, to: WorkID) async throws` 调用 store。`ResumeMatcher.candidates(progress: ReadingProgress, from: [Chapter], to: [Chapter]) -> [ChapterID]` 只提供候选。
 
-- [ ] **1. 写失败测试：** `fastSourceReturnsBeforeSlowFailure()` 验证部分结果可用；`oldQueryCannotReplaceNewResults()` 验证取消后无旧响应覆盖；`sameTitleIsNotAutomaticallyMerged()` 断言确认前两 Work 分开；`seasonAndEditionRemainDistinct()` 验证第 1/2 季及版本差异不误关联；`splitChapterRequiresSelection()` 验证拆章只能给候选。
-- [ ] **2. 验证失败：** `swift test --filter 'SearchServiceTests|AssociationTests|ResumeMatcherTests'` 应失败。
-- [ ] **3. 实现：** 限可用搜索能力，多源并发事件；标题做 Unicode / 空白规范化，保留季数和版次，结合别名/作者给候选。用户明确确认才执行事务关联，解除关联不删除旧进度。章节编号和标题共同匹配，不仅按数组下标。
-- [ ] **4. 验证通过：** 同一命令全通过；慢源失败和歧义不会改变已有库资料。
-- [ ] **5. 提交：** `feat: search across sources and confirm work associations`。
+- [x] **1. 写失败测试：** `fastSourceReturnsBeforeSlowFailure()` 验证部分结果可用；`oldQueryCannotReplaceNewResults()` 验证取消后无旧响应覆盖；`sameTitleIsNotAutomaticallyMerged()` 断言确认前两 Work 分开；`seasonAndEditionRemainDistinct()` 验证第 1/2 季及版本差异不误关联；`splitChapterRequiresSelection()` 验证拆章只能给候选。
+- [x] **2. 验证失败：** `swift test --filter 'SearchServiceTests|AssociationTests|ResumeMatcherTests'` 应失败。
+- [x] **3. 实现：** 限可用搜索能力，多源并发事件；标题做 Unicode / 空白规范化，保留季数和版次，结合别名/作者给候选。用户明确确认才执行事务关联，解除关联不删除旧进度。章节编号和标题共同匹配，不仅按数组下标。
+- [x] **4. 验证通过：** 同一命令全通过；慢源失败和歧义不会改变已有库资料。
+- [x] **5. 提交：** `feat: search across sources and confirm work associations`。
 
 ## Task 11: 图片加载、长图与独立缓存
 

@@ -39,6 +39,7 @@ public actor SourceService {
     public func context(for sourceID: SourceID) async throws -> ParserContext { ParserContext(source: try await activeSource(sourceID), client: client, renderer: renderer) }
     public func adapter(for sourceID: SourceID) async throws -> any SourceAdapter {
         let source = try await activeSource(sourceID)
+        if source.binding == nil, BuiltinSources.candidates().contains(where: { $0.id == sourceID }), let adapter = BuiltinSources.candidateAdapter(for: source) { return adapter }
         let adapter = try registry.adapter(for: source)
         if source.binding?.version != adapter.version {
             let urls = try await store.allSourceWorks().filter { $0.id.sourceID == sourceID }.map(\.url)
@@ -46,6 +47,18 @@ public actor SourceService {
             guard report.binding != nil else { throw MangaError.parseMismatch("解析方式已更新，请重新检测") }
         }
         return adapter
+    }
+    public func inspectCatalogCapabilities(sourceID: SourceID, searchQuery: String) async throws -> [String: MangaError] {
+        let source = try await activeSource(sourceID)
+        let adapter = try await adapter(for: sourceID); let context = try await context(for: sourceID)
+        var capabilities = source.capabilities; var errors: [String: MangaError] = [:]
+        do { if !(try await adapter.browse(context: context)).isEmpty { capabilities.insert(.browse) } }
+        catch { errors["browse"] = (error as? MangaError) ?? .networkUnavailable }
+        do { if !(try await adapter.search(query: searchQuery, context: context)).isEmpty { capabilities.insert(.search) } }
+        catch { errors["search"] = (error as? MangaError) ?? .networkUnavailable }
+        guard var latest = try await store.source(id: sourceID), latest.revision == source.revision, !latest.removed else { throw CancellationError() }
+        latest.capabilities = capabilities; try await store.save(source: latest)
+        return errors
     }
     public func setEnabled(_ enabled: Bool, sourceID: SourceID) async throws {
         guard var source = try await store.source(id: sourceID), !source.removed else { throw MangaError.unsupported("来源不存在") }

@@ -17,7 +17,7 @@ public struct ManhuazhanAdapter: SourceAdapter {
     }
     private func listing(_ request: ResourceRequest, context: ParserContext) async throws -> [SourceWork] {
         let response = try await context.client.send(request, sourceID: context.source.id, priority: .search)
-        let doc = try SwiftSoup.parse(response.text); var seen = Set<URL>(); var result: [SourceWork] = []
+        let doc = try SwiftSoup.parse(response.text); try HTMLAccessGuard.check(doc); var seen = Set<URL>(); var result: [SourceWork] = []
         for link in try doc.select("a[href*='/comic/']").array() {
             guard let url = resolvedWebURL(try link.attr("href"), relativeTo: response.finalURL), WebOrigin(url) == WebOrigin(context.source.baseURL), url.path.range(of: #"^/comic/\d+/?$"#, options: .regularExpression) != nil else { continue }
             let title = try link.attr("title").isEmpty ? link.text().trimmingCharacters(in: .whitespacesAndNewlines) : link.attr("title")

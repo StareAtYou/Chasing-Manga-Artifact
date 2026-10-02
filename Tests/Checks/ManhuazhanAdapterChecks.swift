@@ -18,6 +18,12 @@ public let manhuazhanAdapterChecks: [Check] = [
         do { _ = try await ManhuazhanAdapter().details(url: url, context: ParserContext(source: source, client: client)); throw CheckFailure(description: "Challenge is not comic content") }
         catch MangaError.verificationRequired { }
     },
+    Check("ManhuazhanAdapterTests.searchChallengeIsNotEmptyResults") {
+        let source = BuiltinSources.candidates()[0]; let url = source.baseURL.appendingPathComponent("search")
+        let client = FixtureHTTPClient([url.absoluteString: textResponse("<title>安全验证 - 漫画站</title>", url)])
+        do { _ = try await ManhuazhanAdapter().search(query: "非人哉", context: ParserContext(source: source, client: client)); throw CheckFailure(description: "Search challenge must be explicit") }
+        catch MangaError.verificationRequired { }
+    },
     Check("ManhuazhanAdapterTests.manhuazhanCompletePageList") {
         let source = BuiltinSources.candidates()[0]; let chapter = Samples.chapter(Samples.work(source)); let id = UUID()
         let client = FixtureHTTPClient([chapter.url.absoluteString: textResponse("<div id='ChapterContent'></div><script>var DATA='sample';</script>", chapter.url)])

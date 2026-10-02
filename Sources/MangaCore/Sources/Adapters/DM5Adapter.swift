@@ -7,7 +7,7 @@ public struct DM5Adapter: SourceAdapter {
     public init() { }
     private func checked(_ html: String) throws -> Document {
         if html.contains("您所在地区无法观看该漫画") { throw MangaError.regionRestricted }
-        return try SwiftSoup.parse(html)
+        let doc = try SwiftSoup.parse(html); try HTMLAccessGuard.check(doc); return doc
     }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(context.source.baseURL, context: context) }
     public func search(query: String, context: ParserContext) async throws -> [SourceWork] { try await listing(context.source.baseURL.appendingPathComponent("search").appending(queryItems: [URLQueryItem(name: "title", value: query), URLQueryItem(name: "language", value: "1")]), context: context) }

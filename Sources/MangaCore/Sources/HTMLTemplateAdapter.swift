@@ -17,8 +17,7 @@ public struct HTMLTemplateAdapter: SourceAdapter {
     public init(id: String = "html-declared-v1", template: HTMLTemplate = HTMLTemplate()) { self.id = id; self.template = template }
     private func document(_ html: String, url: URL) throws -> Document {
         let document = try SwiftSoup.parse(html, url.absoluteString)
-        let title = try document.title().lowercased()
-        if ["just a moment", "access denied", "验证", "captcha"].contains(where: title.contains) { throw MangaError.verificationRequired }
+        try HTMLAccessGuard.check(document)
         return document
     }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(url: context.source.baseURL, context: context) }

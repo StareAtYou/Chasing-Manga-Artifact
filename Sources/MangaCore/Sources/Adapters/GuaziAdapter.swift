@@ -20,6 +20,7 @@ public struct GuaziAdapter: SourceAdapter {
     }
     private func listing(_ url: URL, context: ParserContext) async throws -> [SourceWork] {
         let doc = try SwiftSoup.parse(await context.text(url, priority: .search))
+        try HTMLAccessGuard.check(doc)
         var seen = Set<SourceWorkID>(); var result: [SourceWork] = []
         for element in try doc.select("a[href*='comic.php?id=']").array() {
             guard let link = resolvedWebURL(try element.attr("href"), relativeTo: url), WebOrigin(link) == WebOrigin(context.source.baseURL) else { continue }
