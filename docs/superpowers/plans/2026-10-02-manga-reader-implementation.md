@@ -196,11 +196,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `PageFileStore.cachedFile(for: PageID) async -> URL?`、`writeCache(data: Data, pageID: PageID) async throws -> URL`、`clearCache() async throws`；离线文件目录由任务 12 单独管理。`ImagePipeline.file(for: PageResource, sourceID: SourceID) async throws -> URL`、`prefetch(_: [PageResource], sourceID: SourceID)`、`cancelPrefetch(chapterID: ChapterID)`。`TiledImageDecoder.decode(file: URL, viewport: PixelRect, targetWidth: Int) throws -> [ImageTile]`。
 
-- [ ] **1. 写失败测试：** `readingPreemptsPrefetch()` 验证当前页优先；`cancelPrefetchReleasesResources()` 验证换章取消；`longImageHasBoundedTiles()` 验证 20000 像素长图按不超过 4096 像素高的区块读取；`sameSignedPageSharesCacheKey()` 验证 URL 更新复用身份；`invalidDataNeverCachedAsReadable()` 验证错误内容被拒绝。
-- [ ] **2. 验证失败：** `swift test --filter ImagePipelineTests` 应失败。
-- [ ] **3. 实现：** 文件原子写入并验证，解码在非主线程；内存解码缓存默认上限 64 MiB、磁盘自动缓存 256 MiB，初始预取后 3 页，内存压力时缩小窗口。只加载可视区和附近区块，禁止通过完整解码原长图再裁切来假装节省内存。无法区域解码的格式使用受限缩采样并报告实际内存。
-- [ ] **4. 验证通过：** 相同测试全通过；补充内存压力和离开章节的释放检查，实机峰值在任务 17 测量。
-- [ ] **5. 提交：** `feat: prioritize comic images and bound decoding memory`。
+- [x] **1. 写失败测试：** `readingPreemptsPrefetch()` 验证当前页优先；`cancelPrefetchReleasesResources()` 验证换章取消；`longImageHasBoundedTiles()` 验证 20000 像素长图按不超过 4096 像素高的区块读取；`sameSignedPageSharesCacheKey()` 验证 URL 更新复用身份；`invalidDataNeverCachedAsReadable()` 验证错误内容被拒绝。
+- [x] **2. 验证失败：** `swift test --filter ImagePipelineTests` 应失败。
+- [x] **3. 实现：** 文件原子写入并验证，解码在非主线程；内存解码缓存默认上限 64 MiB、磁盘自动缓存 256 MiB，初始预取后 3 页，内存压力时缩小窗口。只加载可视区和附近区块，禁止通过完整解码原长图再裁切来假装节省内存。无法区域解码的格式使用受限缩采样并报告实际内存。
+- [x] **4. 验证通过：** 相同测试全通过；补充内存压力和离开章节的释放检查，实机峰值在任务 17 测量。
+- [x] **5. 提交：** `feat: prioritize comic images and bound decoding memory`。
 
 ## Task 12: 离线下载、恢复与断网阅读
 
