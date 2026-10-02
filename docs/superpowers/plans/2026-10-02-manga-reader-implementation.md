@@ -136,11 +136,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `PageRenderer.render(url: URL, source: Source, interactive: Bool) async throws -> RenderedPage`；RenderedPage 提供 HTML、最终 URL 和局部 accessContextID。`@MainActor WebAccessSession` 持有受控 WKWebView 和可呈现的源页面，正常登录/验证后刷新任务 3 对应源上下文。
 
-- [ ] **1. 写失败测试：** `sourceContextsRemainSeparate()` 验证两个源 Cookie 不混用；`unrelatedNavigationDoesNotCreateBinding()` 验证无关跳转不能改变源身份；`renderTimeoutAndCancellation()` 验证导航取消清理 continuation；`credentialsAreNotLogged()` 验证诊断日志脱敏。
-- [ ] **2. 验证失败：** `swift test --filter WebAccessPolicyTests` 应失败。
-- [ ] **3. 实现：** WebKit 生命周期由 MainActor 管理，页面按源隔离；读取 DOM 的脚本内置且仅用于对应适配，不引入用户或远程可执行插件。访问受限时提供可交互源页面，不自动绕过验证、付费或权限。无头纯 HTTP 路径仍优先。
+- [x] **1. 写失败测试：** `sourceContextsRemainSeparate()` 验证两个源 Cookie 不混用；`unrelatedNavigationDoesNotCreateBinding()` 验证无关跳转不能改变源身份；`renderTimeoutAndCancellation()` 验证导航取消清理 continuation；`credentialsAreNotLogged()` 验证诊断日志脱敏。
+- [x] **2. 验证失败：** `swift test --filter WebAccessPolicyTests` 应失败。
+- [x] **3. 实现：** WebKit 生命周期由 MainActor 管理，页面按源隔离；读取 DOM 的脚本内置且仅用于对应适配，不引入用户或远程可执行插件。访问受限时提供可交互源页面，不自动绕过验证、付费或权限。无头纯 HTTP 路径仍优先。
 - [ ] **4. 验证通过：** policy 测试通过；完整 Xcode 可用后用本地测试页面实际验证 DOM、取消和可见验证入口。此人工平台检查单独记录。
-- [ ] **5. 提交：** `feat: support controlled source page rendering`。
+- [x] **5. 提交：** `feat: support controlled source page rendering`。
 
 ## Task 7: 瓜子漫画适配与在线验证工具
 

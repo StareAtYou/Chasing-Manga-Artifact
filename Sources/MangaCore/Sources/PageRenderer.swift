@@ -6,5 +6,5 @@ public struct RenderedPage: Sendable {
     public init(url: URL, html: String, accessContextID: UUID? = nil) { self.url = url; self.html = html; self.accessContextID = accessContextID }
 }
 public protocol PageRenderer: Sendable {
-    func render(_ request: ResourceRequest, sourceID: SourceID) async throws -> RenderedPage
+    func render(url: URL, source: Source, interactive: Bool) async throws -> RenderedPage
 }
