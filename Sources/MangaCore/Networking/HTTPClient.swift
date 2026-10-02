@@ -17,6 +17,8 @@ public enum RedirectPolicy {
     public static func sanitize(_ request: URLRequest, from originURL: URL) -> URLRequest {
         guard let url = request.url, WebOrigin(url) != WebOrigin(originURL) else { return request }
         var safe = request
+        safe.httpBody = nil
+        if safe.httpMethod != "GET" && safe.httpMethod != "HEAD" { safe.httpMethod = "GET" }
         let allowed = Set(["accept", "accept-language", "accept-encoding", "user-agent", "referer"])
         for key in (request.allHTTPHeaderFields ?? [:]).keys where !allowed.contains(key.lowercased()) { safe.setValue(nil, forHTTPHeaderField: key) }
         return safe
@@ -63,6 +65,7 @@ public struct URLSessionHTTPClient: HTTPClient {
     public func send(_ resource: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
         guard WebOrigin(resource.url) != nil, resource.url.user == nil, resource.url.password == nil else { throw MangaError.invalidURL }
         var request = URLRequest(url: resource.url, timeoutInterval: 12)
+        request.httpMethod = resource.method?.rawValue ?? "GET"; request.httpBody = resource.body
         request.allHTTPHeaderFields = resource.headers
         if let referer = resource.referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
         for (key, value) in await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url) { request.setValue(value, forHTTPHeaderField: key) }

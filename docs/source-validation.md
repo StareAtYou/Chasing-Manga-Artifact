@@ -7,7 +7,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | [瓜子漫画](https://www.guazimanhua.com/) | HTTP 200 | 40 项 | 2 项 | 812 章 | 首/末章各首/末图已解码：True | 单作品验证，通过时仍只算有限验证 |
 | [DM5](https://www.dm5.com/) | HTTP 200 | 235 项 | 25 项 | 公开样本 4 章 | 首/末章首/末图已解码 | 有限验证；部分作品存在地区或付费限制 |
-| [漫画站](https://www.manhuazhan.com/) | 待本轮探针 | 待验证 | 待验证 | 待验证 | 待验证 | 未验收 |
+| [漫画站](https://www.manhuazhan.com/) | HTTP 200 | 136 项 | 返回 0 项，待验证实际结果 | 991 章 | 首/末章首/末图已解码 | 有限验证，Mac WebKit + HTTP |
 
 ## 瓜子漫画
 
@@ -33,3 +33,8 @@ Mac WebKit 与 iOS 真机环境下的验证、两作品各两章的完整源级�
 指定样本 `https://www.dm5.com/manhua-yirenzhixia/` 的详情页明确表示当前地区无法观看，保留访问失败，不从推荐列表替换成该作品目录。正常公开样本 `https://www.dm5.com/manhua-xiangzizhixia-yili/` 共 4 章；首章 39 页、末章 36 页，首/末图均真实解码成功。
 
 公开 reader 使用每页 `chapterfun.ashx` 返回的固定数据模板。实现只解包字符串字典并提取 pix / pvalue / 后缀字面量，不执行接口 JavaScript；页号作为稳定身份。每页均从网站当前上下文获取地址；源未声明失效时间时不伪造 expiresAt。合成检查验证签名刷新后身份不变；真实过期后恢复与双作品源级验证仍待完成。
+
+## 漫画站
+
+样本 `https://www.manhuazhan.com/comic/219424`（非人哉）取得 991 章目录；首章 36 页、末章 4 页，首/末图均正常解码。本机普通 URLSession 可访问；早期 urllib 和网页工具失败不代表本机原站读取失败。
+正文 `DATA` 由网站正常脚本生成 `newImgs`。App 在隔离 WebKit 会话中正常加载网页，通过内置固定表达式读取该数组，不运行自定义插件或执行接口代码。实际 Mac WebKit 探针已验证；iOS 会话与界面交互仍待验证。

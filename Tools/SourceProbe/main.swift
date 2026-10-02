@@ -1,6 +1,9 @@
 import Foundation
 import MangaCore
 import MangaPlatform
+#if os(macOS)
+import AppKit
+#endif
 actor DiagnosticTransport: HTTPTransport {
     let transport = URLSessionTransport()
     var responses: [[String: String]] = []
@@ -21,7 +24,11 @@ guard index >= 0 else { print("Unknown source"); exit(2) }
 let source = BuiltinSources.candidates()[index]
 guard let adapter = BuiltinSources.candidateAdapter(for: source) else { print("Adapter pending"); exit(2) }
 let diagnostic = DiagnosticTransport(); let client = URLSessionHTTPClient(transport: diagnostic)
-let context = ParserContext(source: source, client: client)
+var renderer: (any PageRenderer)? = nil
+#if os(macOS)
+if sourceName == "manhuazhan" { _ = NSApplication.shared; renderer = WebKitRenderer(contexts: client.contexts) }
+#endif
+let context = ParserContext(source: source, client: client, renderer: renderer)
 var report: [String: Any] = ["source": sourceName, "date": ISO8601DateFormatter().string(from: Date()), "platform": ProcessInfo.processInfo.operatingSystemVersionString, "readingVerified": false]
 do { let response = try await client.send(ResourceRequest(url: source.baseURL), sourceID: source.id, priority: .probe); report["homepageStatus"] = response.statusCode } catch { report["homepageError"] = error.localizedDescription }
 do { report["browseCount"] = try await adapter.browse(context: context).count } catch { report["browseError"] = error.localizedDescription }

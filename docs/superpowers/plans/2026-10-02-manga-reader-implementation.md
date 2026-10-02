@@ -172,11 +172,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** ManhuazhanAdapter 实现 SourceAdapter，id=`manhuazhan-reader`。页面模板和正文方式以实际能读取的页面确认，不预设与瓜子/DM5相同。
 
-- [ ] **1. 写失败测试：** `manhuazhanLinksPreserveSemanticIDs()` 验证目录身份与相对 URL；`challengePageDoesNotLookLikeComic()` 验证访问限制不误匹配；正文可取得后加入 `manhuazhanCompletePageList()` 验证末页和正文区域。
-- [ ] **2. 验证失败：** `swift test --filter ManhuazhanAdapterTests` 应失败。
-- [ ] **3. 实现：** 先验证正常 HTTP 和可见 WebKit 浏览路径，读取实际详情/正文格式再适配。仍为 403 时实现明确的受限反馈、记录未解决项并继续独立功能；不能用网页搜索缓存证明原站可读。
-- [ ] **4. 验证：** 样本测试通过；`swift run SourceProbe --source manhuazhan --work-url 'https://www.manhuazhan.com/comic/219424' --online`。无法解码真实正文时该源阅读目标保持未完成。
-- [ ] **5. 提交：** `feat: add manhuazhan adapter and access status`。
+- [x] **1. 写失败测试：** `manhuazhanLinksPreserveSemanticIDs()` 验证目录身份与相对 URL；`challengePageDoesNotLookLikeComic()` 验证访问限制不误匹配；正文可取得后加入 `manhuazhanCompletePageList()` 验证末页和正文区域。
+- [x] **2. 验证失败：** `swift test --filter ManhuazhanAdapterTests` 应失败。
+- [x] **3. 实现：** 先验证正常 HTTP 和可见 WebKit 浏览路径，读取实际详情/正文格式再适配。仍为 403 时实现明确的受限反馈、记录未解决项并继续独立功能；不能用网页搜索缓存证明原站可读。
+- [x] **4. 验证：** 样本测试通过；`swift run SourceProbe --source manhuazhan --work-url 'https://www.manhuazhan.com/comic/219424' --online`。无法解码真实正文时该源阅读目标保持未完成。
+- [x] **5. 提交：** `feat: add manhuazhan adapter and access status`。
 
 ## Task 10: 跨源搜索、作品关联与续读候选
 
