@@ -24,6 +24,7 @@ MANGA_APP="$MANGA_OUTPUT/ChasingManga.app"
 mkdir -p "$MANGA_OUTPUT" "$MANGA_APP/Contents/MacOS" "$MANGA_APP/Contents/Resources"
 cp "$MANGA_BIN_DIR/ChasingMangaApp" "$MANGA_APP/Contents/MacOS/ChasingMangaApp"
 cp LICENSE "$MANGA_APP/Contents/Resources/LICENSE.txt"
+cp THIRD_PARTY_NOTICES.md "$MANGA_APP/Contents/Resources/THIRD_PARTY_NOTICES.md"
 python3 - "$MANGA_APP" "$MANGA_VERSION" <<'PY'
 import plistlib, sys
 from pathlib import Path
