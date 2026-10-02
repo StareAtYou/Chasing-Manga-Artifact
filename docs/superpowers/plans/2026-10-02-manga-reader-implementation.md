@@ -112,11 +112,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `SourceAdapter` 有 `id: String`、`version: Int`、`capabilities: SourceCapabilities`；`browse(context: ParserContext) -> [SourceWork]`、`search(query: String, context: ParserContext) -> [SourceWork]`、`details(url: URL, context: ParserContext) -> SourceWork`、`chapters(work: SourceWork, context: ParserContext) -> [Chapter]`、`pages(chapter: Chapter, context: ParserContext) -> [PageResource]` 均 async throws。`ParserContext` 包含 Source、HTTPClient、可选 `PageRenderer`。在 Core 定义 `ImageVerifying.verify(_ data: Data) throws -> ImageMetadata` 及任务 6 的 PageRenderer / RenderedPage 协议；Platform 提供实际图片验证实现，Metadata 包含像素宽高和格式。
 
-- [ ] **1. 写失败测试：** `readerImagesExcludeAdsAndCovers()` 断言只返回正文且页序正确；`followsChapterPaginationWithoutLoops()` 验证分页去重与循环终止；`jsonTemplateRequiresKnownSchema()` 验证支持的字段映射和未知结构拒绝；`htmlIsNotAnImage()` 断言 HTTP 200 的 HTML 无法通过图片验证；`truncatedImageRejected()` 验证破损图不可用。
-- [ ] **2. 验证失败：** `swift test --filter 'TemplateParserTests|ImageVerifierTests'` 应失败。
-- [ ] **3. 实现：** SwiftSoup 提取明确阅读区域内 src / data-src / data-original，排除占位及广告；JSON 模板使用固定声明字段映射，首个模板为作品/章节目录及 `pages: [{id, ordinal, url}]`。注册表稳定优先级、版本和特征。ImageIO 验证实际可解码图，PNG/JPEG/WebP 逐个检测平台支持；不支持时显式失败。样本图片自行生成，网页样本只保留最小脱敏结构。
-- [ ] **4. 验证通过：** 同一命令全通过，完整与损坏样本均符合预期；记录平台实际支持格式。
-- [ ] **5. 提交：** `feat: parse supported templates and validate comic images`。
+- [x] **1. 写失败测试：** `readerImagesExcludeAdsAndCovers()` 断言只返回正文且页序正确；`followsChapterPaginationWithoutLoops()` 验证分页去重与循环终止；`jsonTemplateRequiresKnownSchema()` 验证支持的字段映射和未知结构拒绝；`htmlIsNotAnImage()` 断言 HTTP 200 的 HTML 无法通过图片验证；`truncatedImageRejected()` 验证破损图不可用。
+- [x] **2. 验证失败：** `swift test --filter 'TemplateParserTests|ImageVerifierTests'` 应失败。
+- [x] **3. 实现：** SwiftSoup 提取明确阅读区域内 src / data-src / data-original，排除占位及广告；JSON 模板使用固定声明字段映射，首个模板为作品/章节目录及 `pages: [{id, ordinal, url}]`。注册表稳定优先级、版本和特征。ImageIO 验证实际可解码图，PNG/JPEG/WebP 逐个检测平台支持；不支持时显式失败。样本图片自行生成，网页样本只保留最小脱敏结构。
+- [x] **4. 验证通过：** 同一命令全通过，完整与损坏样本均符合预期；记录平台实际支持格式。
+- [x] **5. 提交：** `feat: parse supported templates and validate comic images`。
 
 ## Task 5: 自定义源探测、自动绑定与失效恢复
 
