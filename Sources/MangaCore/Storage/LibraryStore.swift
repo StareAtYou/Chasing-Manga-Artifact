@@ -75,7 +75,7 @@ public actor LibraryStore {
     public func chapters(for id: SourceWorkID) throws -> [Chapter] { try record(kind: "directory", key: id.key, as: [Chapter].self) ?? [] }
     public func work(id: WorkID) throws -> Work? { try record(kind: "work", key: id.key, as: Work.self) }
     public func library() throws -> [Work] {
-        try db.rows("SELECT body FROM records WHERE kind='work' AND EXISTS(SELECT 1 FROM associations WHERE work_id=records.id)").map { try JSONDecoder().decode(Work.self, from: $0) }.sorted { $0.addedAt > $1.addedAt }
+        try db.rows("SELECT body FROM records WHERE kind='work' AND EXISTS(SELECT 1 FROM associations WHERE work_id=records.id)").map { try JSONDecoder().decode(Work.self, from: $0) }.filter { $0.isOnShelf != false }.sorted { $0.addedAt > $1.addedAt }
     }
     public func sourceWorks(for id: WorkID) throws -> [SourceWork] {
         try db.rows("SELECT body FROM records WHERE kind='sourceWork' AND EXISTS(SELECT 1 FROM associations WHERE source_work=records.id AND work_id=?)", [.text(id.key)]).map { try JSONDecoder().decode(SourceWork.self, from: $0) }
@@ -84,16 +84,20 @@ public actor LibraryStore {
         guard let data = try db.rows("SELECT work_id FROM associations WHERE source_work=?", [.text(sourceWorkID.key)]).first, let text = String(data: data, encoding: .utf8), let uuid = UUID(uuidString: text) else { return nil }
         return WorkID(rawValue: uuid)
     }
-    public func createWork(from id: SourceWorkID) throws -> Work {
-        if let workID = try workID(for: id), let work = try work(id: workID) { return work }
+    public func createWork(from id: SourceWorkID, onShelf: Bool = true) throws -> Work {
+        if let workID = try workID(for: id), var work = try work(id: workID) {
+            if onShelf && work.isOnShelf == false { work.isOnShelf = true; try saveRecord(kind: "work", key: workID.key, value: work) }; return work
+        }
         guard let sourceWork = try sourceWork(id: id) else { throw MangaError.storage("作品不存在") }
         return try db.transaction {
-            let work = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id)
+            let work = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id, isOnShelf: onShelf)
             try saveRecord(kind: "work", key: work.id.key, value: work)
             _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?)", [.text(id.key), .text(work.id.key)])
             return work
         }
     }
+    public func setOnShelf(_ value: Bool, workID: WorkID) throws { guard var work = try work(id: workID) else { return }; work.isOnShelf = value; try saveRecord(kind: "work", key: workID.key, value: work) }
+    public func history() throws -> [ReadingProgress] { try records(kind: "progress", as: ReadingProgress.self).sorted { $0.updatedAt > $1.updatedAt } }
     public func link(_ id: SourceWorkID, to workID: WorkID) throws {
         guard try sourceWork(id: id) != nil, try work(id: workID) != nil else { throw MangaError.storage("作品不存在") }
         _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?) ON CONFLICT(source_work) DO UPDATE SET work_id=excluded.work_id", [.text(id.key), .text(workID.key)])

@@ -5,8 +5,9 @@ public struct Work: Codable, Hashable, Sendable, Identifiable {
     public var coverURL: URL?
     public var preferredSourceWorkID: SourceWorkID?
     public var addedAt: Date
-    public init(id: WorkID = WorkID(), title: String, coverURL: URL? = nil, preferredSourceWorkID: SourceWorkID? = nil) {
-        self.id = id; self.title = title; self.coverURL = coverURL; self.preferredSourceWorkID = preferredSourceWorkID; addedAt = Date()
+    public var isOnShelf: Bool?
+    public init(id: WorkID = WorkID(), title: String, coverURL: URL? = nil, preferredSourceWorkID: SourceWorkID? = nil, isOnShelf: Bool? = true) {
+        self.id = id; self.title = title; self.coverURL = coverURL; self.preferredSourceWorkID = preferredSourceWorkID; addedAt = Date(); self.isOnShelf = isOnShelf
     }
 }
 public struct SourceWork: Codable, Hashable, Sendable, Identifiable {

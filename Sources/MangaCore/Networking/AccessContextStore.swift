@@ -16,15 +16,16 @@ public actor AccessContextStore {
         let origin: WebOrigin
         let headers: [String: String]
     }
+    private var latest: [SourceID: UUID] = [:]
     private var contexts: [UUID: Context] = [:]
     public init() { }
     public func register(sourceID: SourceID, originURL: URL, headers: [String: String]) throws -> UUID {
         guard let origin = WebOrigin(originURL) else { throw MangaError.invalidURL }
-        let id = UUID(); contexts[id] = Context(sourceID: sourceID, origin: origin, headers: headers); return id
+        let id = UUID(); contexts[id] = Context(sourceID: sourceID, origin: origin, headers: headers); latest[sourceID] = id; return id
     }
     public func headers(for id: UUID?, sourceID: SourceID, url: URL) -> [String: String] {
-        guard let id, let context = contexts[id], context.sourceID == sourceID, WebOrigin(url) == context.origin else { return [:] }
+        guard let id = id ?? latest[sourceID], let context = contexts[id], context.sourceID == sourceID, WebOrigin(url) == context.origin else { return [:] }
         return context.headers
     }
-    public func remove(sourceID: SourceID) { contexts = contexts.filter { $0.value.sourceID != sourceID } }
+    public func remove(sourceID: SourceID) { latest.removeValue(forKey: sourceID); contexts = contexts.filter { $0.value.sourceID != sourceID } }
 }

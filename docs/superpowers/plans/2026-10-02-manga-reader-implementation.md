@@ -232,11 +232,11 @@ Files 列表中省略目录的文件沿用最近一个明确路径的父目录�
 
 **Interfaces:** `AppContainer` 注入任务 2–13 服务和 Core 的 UserSettings（theme、通知、缓存设置）。Core 的 NavigationState 定义 `Route`：work(WorkID)、chapters(SourceWorkID)、reader(ChapterID)；`NavigationState.open(workID: WorkID) async throws -> Route` 恢复来源可用时的阅读位置，否则进入作品详情。`RootNavigation<ReaderContent: View>` 接收 `readerDestination: (ChapterID) -> ReaderContent`，本步不依赖任务 15 尚未实现的 ReaderView。SwiftUI 由 MainActor 可观察模型消费服务。
 
-- [ ] **1. 写失败测试：** `libraryResumesSelectedSource()` 验证点击书架正确恢复；`unavailableSourceShowsAlternatives()` 验证失效来源进入详情而非自动换源；`selectingSourceRoutesToItsChapters()` 验证选源后的章节身份。
-- [ ] **2. 验证失败：** `swift test --filter NavigationStateTests` 应失败。
-- [ ] **3. 实现：** iOS 四个底部入口、macOS 对应侧栏；搜索流式结果、关联候选确认/拆分、来源卡片和关注调整、下载操作、更新列表、源管理。自定义源支持有限验证/歧义预览/补充样本/可见源页面等状态。提供空态、失败态和加载态；遵循系统字体、明暗主题、可访问标签和 iPad 自适应。Source 停用与删除按设计保留资料。
-- [ ] **4. 验证通过：** 导航测试和 `swift build --target MangaUI` 通过；实际界面测试在任务 16、17 完成。
-- [ ] **5. 提交：** `feat: build native library discovery and source management screens`。
+- [x] **1. 写失败测试：** `libraryResumesSelectedSource()` 验证点击书架正确恢复；`unavailableSourceShowsAlternatives()` 验证失效来源进入详情而非自动换源；`selectingSourceRoutesToItsChapters()` 验证选源后的章节身份。
+- [x] **2. 验证失败：** `swift test --filter NavigationStateTests` 应失败。
+- [x] **3. 实现：** iOS 四个底部入口、macOS 对应侧栏；搜索流式结果、关联候选确认/拆分、来源卡片和关注调整、下载操作、更新列表、源管理。自定义源支持有限验证/歧义预览/补充样本/可见源页面等状态。提供空态、失败态和加载态；遵循系统字体、明暗主题、可访问标签和 iPad 自适应。Source 停用与删除按设计保留资料。
+- [x] **4. 验证通过：** 导航测试和 `swift build --target MangaUI` 通过；实际界面测试在任务 16、17 完成。
+- [x] **5. 提交：** `feat: build native library discovery and source management screens`。
 
 ## Task 15: 阅读状态、滚动/翻页与 macOS 双页
 
