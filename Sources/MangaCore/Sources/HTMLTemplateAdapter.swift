@@ -29,6 +29,7 @@ public struct HTMLTemplateAdapter: SourceAdapter {
     public func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage {
         let url = pageURL ?? channel.url
         guard sort == .sourceDefault, SourceScope.contains(url, in: context.source.baseURL) else { throw MangaError.invalidURL }
+        let context = HTMLCatalogDiscovery.catalogContext(context)
         let works = try await listing(url: url, context: context)
         return try HTMLCatalogDiscovery.page(html: await context.text(url), works: works, url: url, source: context.source)
     }

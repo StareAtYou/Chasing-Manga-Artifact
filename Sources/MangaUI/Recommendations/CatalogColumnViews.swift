@@ -72,7 +72,7 @@ private struct CatalogFreshness: View {
     @Environment(AppContainer.self) private var app
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(app.recommendationErrors[snapshot.sourceID] == nil ? "读取于" : "旧缓存 · 读取于") \(snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
+            Text("\(app.isRecommendationCached(snapshot.sourceID) ? "缓存 · 读取于" : "读取于") \(snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
             if let error = app.recommendationErrors[snapshot.sourceID] { Text("来源读取失败：\(error)").font(.caption).foregroundStyle(.secondary) }
             ForEach(snapshot.notices, id: \.self) { Text($0).font(.caption).foregroundStyle(.secondary) }
         }

@@ -40,7 +40,7 @@ struct RecommendationsView: View {
                 if !app.cachedRecommendations.isEmpty {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("上次保存的内容").font(.title2.bold())
-                        Text("这些来源当前读取失败，以下内容可能已过期。") .foregroundStyle(.secondary)
+                        Text("这些内容来自上次缓存，正在刷新或来源当前不可用，内容可能已过期。") .foregroundStyle(.secondary)
                         ForEach(app.cachedRecommendations, id: \.sourceID) { snapshot in
                             ForEach(snapshot.sections.prefix(1)) { section in recommendationRail(section, sourceID: snapshot.sourceID, subtitle: "缓存 · \(app.sourceName(snapshot.sourceID)) · \(snapshot.fetchedAt.formatted(date: .abbreviated, time: .shortened))") }
                         }
@@ -69,6 +69,7 @@ struct RecommendationsView: View {
                     Button { Task { await app.select(work) } } label: {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("\(app.sourceName(source)) · \(section.channel.title)").font(.subheadline.bold()).foregroundStyle(.secondary)
+                            Text(freshness(source)).font(.caption).foregroundStyle(.secondary)
                             HStack(alignment: .center, spacing: 18) {
                                 CoverView(url: work.coverURL, sourceWork: work, width: 104, height: 148)
                                 VStack(alignment: .leading, spacing: 10) { Text(work.title).font(.title2.bold()).lineLimit(3); Text("从原站榜单开始探索").font(.subheadline).foregroundStyle(.secondary); Label("查看漫画", systemImage: "arrow.right.circle.fill").font(.subheadline.bold()).foregroundStyle(.teal) }
@@ -81,9 +82,13 @@ struct RecommendationsView: View {
     }
     private func recommendationRail(_ section: CatalogSection, sourceID: SourceID, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack { VStack(alignment: .leading, spacing: 4) { Text(section.channel.genre ?? section.channel.title).font(.title2.bold()); Text(subtitle).font(.caption).foregroundStyle(.secondary) }; Spacer(); NavigationLink("查看全部", value: Route.catalogChannel(sourceID, section.channel.id)).font(.subheadline) }
+            HStack { VStack(alignment: .leading, spacing: 4) { Text(section.channel.genre ?? section.channel.title).font(.title2.bold()); Text(subtitle + " · " + freshness(sourceID)).font(.caption).foregroundStyle(.secondary) }; Spacer(); NavigationLink("查看全部", value: Route.catalogChannel(sourceID, section.channel.id)).font(.subheadline) }
             ScrollView(.horizontal, showsIndicators: false) { LazyHStack(alignment: .top, spacing: 18) { ForEach(section.works.prefix(16)) { work in RecommendationCoverCard(work: work) } } }
         }
+    }
+    private func freshness(_ sourceID: SourceID) -> String {
+        let prefix = app.isRecommendationCached(sourceID) ? "缓存 · " : ""
+        return prefix + "读取于 " + (app.recommendationSnapshot(for: sourceID)?.fetchedAt.formatted(date: .abbreviated, time: .shortened) ?? "未知")
     }
     private var sourceColumns: some View {
         VStack(alignment: .leading, spacing: 14) {

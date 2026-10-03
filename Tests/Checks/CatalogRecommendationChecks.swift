@@ -42,6 +42,27 @@ private struct ReadOnlyRecommendationAdapter:SourceAdapter {
     func pages(chapter:Chapter,context:ParserContext) async throws -> [PageResource] {Samples.pages(chapter)}
 }
 public let catalogRecommendationChecks:[Check] = [
+    Check("CatalogRecommendationTests.rejectsSameSourceCategoryAndPageRedirects") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = BuiltinSources.candidates()[6]
+        let category = source.baseURL.appendingPathComponent("manga-list-31-0-0/")
+        let wrong = source.baseURL.appendingPathComponent("manga-list-26-0-0/")
+        let html = "<a href='/1bz/' title='分类甲'></a>"
+        let client = FixtureHTTPClient([source.baseURL.absoluteString: textResponse(recommendationHome, source.baseURL), category.absoluteString: textResponse(html, wrong)])
+        let (service, _, saved) = try await recommendationFixture(root, client: client)
+        let snapshot = try await service.recommendations(sourceID: saved.id)
+        let genre = snapshot.channels.first { $0.genre == "热血" }!
+        do { _ = try await service.catalogPage(sourceID: saved.id, channelID: genre.id); throw CheckFailure(description: "Wrong category redirect was published") } catch MangaError.parseMismatch { }
+        let next = URL(string: category.absoluteString + "?page=2")!
+        let wrongPage = URL(string: category.absoluteString + "?page=3")!
+        let channel = CatalogChannel(id: "genre", title: "热血", url: category, kind: .genre)
+        let context = ParserContext(source: source, client: FixtureHTTPClient([next.absoluteString: textResponse(html, wrongPage)]))
+        do { _ = try await MangaBZAdapter().catalogPage(channel: channel, sort: .sourceDefault, pageURL: next, context: context); throw CheckFailure(description: "Wrong page redirect was published") } catch MangaError.parseMismatch { }
+        let canonical = URL(string: String(category.absoluteString.dropLast()) + "?utm_source=fixture")!
+        let canonicalContext = ParserContext(source: source, client: FixtureHTTPClient([category.absoluteString: textResponse(html, canonical)]))
+        let result = try await MangaBZAdapter().catalogPage(channel: channel, sort: .sourceDefault, pageURL: nil, context: canonicalContext)
+        try expect(result.works.count == 1, "Canonical slash and tracking normalization remains supported")
+    },
     Check("CatalogRecommendationTests.realTaxonomyAndScopedPopularOrdering") {
         let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
         let (service,_,source)=try await recommendationFixture(root)

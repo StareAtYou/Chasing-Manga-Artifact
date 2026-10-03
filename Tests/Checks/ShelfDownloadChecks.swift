@@ -5,17 +5,28 @@ import MangaUI
 private actor ShelfGatedTransfer: PageTransferring {
     let data:Data
     var started=false
+    var released=false
     var pending:[CheckedContinuation<Void,Never>]=[]
     init(_ data:Data) {self.data=data}
     func download(_ request:ResourceRequest,sourceID:SourceID,taskID:UUID,to destination:URL) async throws -> TransferResult {
-        started=true;await withCheckedContinuation {pending.append($0)}
+        started=true;if !released {await withCheckedContinuation {pending.append($0)}}
         try Task.checkCancellation();try data.write(to:destination)
         return TransferResult(file:destination,statusCode:200,bytes:data.count)
     }
-    func release() {let gates=pending;pending=[];for gate in gates {gate.resume()}}
+    func release() {released=true;let gates=pending;pending=[];for gate in gates {gate.resume()}}
     func recoverTransfers() async throws -> [TransferRecord] {[]}
 }
 public let shelfDownloadChecks:[Check] = [
+    Check("ShelfDownloadTests.statusUpdatesWithDownloadSheetClosed") { @MainActor in
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let transfer = ShelfGatedTransfer(try generatedPNG()); let (app, work) = try await wholeFixture(root, state: WholeDownloadState(), transfer: transfer)
+        let chapter = try await app.store.chapters(for: work.id)[0]
+        try await app.queueDownload(chapter)
+        let observing = Task { await app.observeShelfDownloadStatus(interval: .milliseconds(1)) }; defer { observing.cancel() }
+        await transfer.release()
+        for _ in 0..<100_000 { if app.downloadList.first?.state == .completed { break }; await Task.yield() }
+        try expect(!app.showDownloads && app.downloadList.first?.state == .completed, "Shelf sees transfer completion without its management sheet")
+    },
     Check("ShelfDownloadTests.singleDownloadAddsExistingGroupWithoutFollowing") {
         let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
         let (app,work)=try await wholeFixture(root,state:WholeDownloadState())

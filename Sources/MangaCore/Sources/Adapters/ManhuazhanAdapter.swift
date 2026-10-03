@@ -16,6 +16,7 @@ public struct ManhuazhanAdapter: SourceAdapter {
         let url: URL
         if let pageURL { url = pageURL } else { url = try HTMLCatalogDiscovery.sortedURL(channel, sort: sort, source: context.source) }
         guard SourceScope.contains(url, in: context.source.baseURL) else { throw MangaError.invalidURL }
+        let context = HTMLCatalogDiscovery.catalogContext(context)
         let works = try await listing(ResourceRequest(url: url), context: context)
         return try HTMLCatalogDiscovery.page(html: await context.text(url), works: works, url: url, source: context.source)
     }

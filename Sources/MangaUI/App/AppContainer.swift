@@ -28,6 +28,7 @@ public enum AppSection: String, CaseIterable, Identifiable {
     public var showDownloads = false
     public var downloadWorkID: WorkID?
     public var recommendationSnapshots: [SourceID: SourceRecommendations] = [:]
+    public var recommendationCachedSourceIDs = Set<SourceID>()
     public var recommendationLoading = Set<SourceID>()
     public var recommendationErrors: [SourceID: String] = [:]
     public var genrePreviews: [SourceID: [CatalogSection]] = [:]

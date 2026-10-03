@@ -3,8 +3,8 @@ import MangaCore
 struct DiscoveryView: View {
     @Environment(AppContainer.self) private var app
     @State private var query = ""
-    @State private var selectedSources = Set<SourceID>()
-    @State private var knownSearchSources = Set<SourceID>()
+    @State private var excludedSources = Set<SourceID>()
+    private var selectedSources: Set<SourceID> { searchable.subtracting(excludedSources) }
     @State private var showSources = false
     @State private var showWorkURL = false
     @State private var showSearchFilter = false
@@ -22,8 +22,7 @@ struct DiscoveryView: View {
         }.padding(24) }.navigationTitle("发现")
         .searchable(text: $query, prompt: "跨源搜索漫画名称")
         .onChange(of: query) { _, _ in search() }
-        .onChange(of: searchable, initial: true) { _, available in
-            selectedSources.formUnion(available.subtracting(knownSearchSources)); selectedSources.formIntersection(available); knownSearchSources.formUnion(available)
+        .onChange(of: searchable, initial: true) { _, _ in
             search()
         }
         .toolbar {
@@ -37,7 +36,7 @@ struct DiscoveryView: View {
         .sheet(isPresented: $showSearchFilter) {
             NavigationStack {
                 List(app.sourceList.filter { searchable.contains($0.id) }) { source in
-                    Toggle(source.name, isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { selectedSources.insert(source.id) } else { selectedSources.remove(source.id) }; search() }))
+                    Toggle(source.name, isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { excludedSources.remove(source.id) } else { excludedSources.insert(source.id) }; search() }))
                 }.navigationTitle("参与跨源搜索的来源").toolbar { Button("完成") { showSearchFilter = false } }.frame(minWidth: 320, minHeight: 360)
             }
         }

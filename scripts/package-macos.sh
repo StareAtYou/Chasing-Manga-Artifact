@@ -30,7 +30,7 @@ import plistlib, sys
 from pathlib import Path
 app, version = Path(sys.argv[1]), sys.argv[2]
 info = plistlib.loads(Path('Apps/macOS/Info.plist').read_bytes())
-info.update(CFBundleExecutable='ChasingMangaApp', CFBundleIdentifier='com.chasingmanga.local.mac', CFBundleName='ChasingManga', CFBundleDisplayName='追漫', CFBundleShortVersionString=version, CFBundleVersion='5', LSMinimumSystemVersion='14.0', CFBundleIconFile='AppIcon', NSHighResolutionCapable=True)
+info.update(CFBundleExecutable='ChasingMangaApp', CFBundleIdentifier='com.chasingmanga.local.mac', CFBundleName='ChasingManga', CFBundleDisplayName='追漫', CFBundleShortVersionString=version, CFBundleVersion='6', LSMinimumSystemVersion='14.0', CFBundleIconFile='AppIcon', NSHighResolutionCapable=True)
 (app/'Contents/Info.plist').write_bytes(plistlib.dumps(info))
 PY
 swift scripts/make-app-icon.swift "$MANGA_APP/Contents/Resources/AppIcon.icns"

@@ -42,7 +42,7 @@ struct LibraryView: View {
             VStack(alignment: .leading, spacing: 6) { Text(app.catalog.first { $0.id == progress.sourceWorkID }?.title ?? "历史漫画").font(.headline); Text(app.chapterTitle(progress.chapterID)).font(.subheadline); HStack { SourceBadge(name: app.sourceName(progress.sourceWorkID.sourceID)); Text(progress.updatedAt.formatted(date: .abbreviated, time: .shortened)).font(.caption).foregroundStyle(.secondary) } }
         }.buttonStyle(.borderless).padding(.vertical, 6) }.overlay { if app.history.isEmpty { EmptyState(title: "暂无阅读历史", icon: "clock", message: "阅读过的章节会自动保存在这里。") } }.navigationTitle("阅读历史").toolbar { Button("完成") { showHistory = false } }.frame(minWidth: 320, minHeight: 400) } }
         .sheet(isPresented: $showSettings) { NavigationStack { SettingsView() } }
-        .task { await app.perform { try await app.refresh() } }
+        .task { await app.perform { try await app.refresh() }; await app.observeShelfDownloadStatus() }
     }
     private func shelfCard(_ work: Work) -> some View {
         let source = app.catalog.first { $0.id == work.preferredSourceWorkID }

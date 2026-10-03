@@ -1,6 +1,13 @@
 import Foundation
 import MangaCore
 extension AppContainer {
+    public func observeShelfDownloadStatus(interval: Duration = .seconds(1)) async {
+        while !Task.isCancelled && section == .library {
+            do { downloadList = try await downloads.tasks(); try await Task.sleep(for: interval) }
+            catch is CancellationError { return }
+            catch { message = error.localizedDescription; return }
+        }
+    }
     public func presentDownloads(for workID: WorkID? = nil) {
         section = .library; path = []; downloadWorkID = workID; showDownloads = true
     }

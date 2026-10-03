@@ -15,6 +15,10 @@ public enum HTMLCatalogDiscovery {
         if c.path != "/",c.path.hasSuffix("/") {c.path.removeLast()}
         return c.string ?? url.absoluteString
     }
+    static func catalogContext(_ context: ParserContext) -> ParserContext {
+        ParserContext(source: context.source, client: CatalogDocumentClient(client: context.client), renderer: context.renderer)
+    }
+    static func sameDocument(_ requested: URL, _ final: URL) -> Bool { identity(requested) == identity(final) }
     private static func navigationURL(_ link:Element,base:URL) throws -> URL? {
         let href=try link.attr("href")
         if let url = resolvedWebURL(href,relativeTo:base) { return url }
@@ -126,5 +130,15 @@ public enum HTMLCatalogDiscovery {
         }
         var seen=Set<SourceWorkID>()
         return CatalogPage(works:works.filter{$0.id.sourceID==source.id && SourceScope.contains($0.url,in:source.baseURL) && seen.insert($0.id).inserted},nextURL:next)
+    }
+}
+
+// Scope alone cannot distinguish two categories on the same website.
+private struct CatalogDocumentClient: HTTPClient {
+    let client: any HTTPClient
+    func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
+        let response = try await client.send(request, sourceID: sourceID, priority: priority)
+        guard HTMLCatalogDiscovery.sameDocument(request.url, response.finalURL) else { throw MangaError.parseMismatch("专栏跳转到了不同的分类、排序或页码，请刷新来源后重试") }
+        return response
     }
 }
