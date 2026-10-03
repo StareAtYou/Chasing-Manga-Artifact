@@ -76,7 +76,7 @@ public actor SourceService {
         let source = try await activeSource(sourceID)
         let adapter = try await adapter(for: sourceID)
         let context = ParserContext(source: source, client: DocumentSessionClient(client), renderer: renderer)
-        let result: SourceRecommendations
+        var result: SourceRecommendations
         do { result = try await adapter.recommendations(context: context) }
         catch MangaError.unsupported(let feature) where feature == "浏览" {
             let works = try await store.allSourceWorks().filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
@@ -84,6 +84,7 @@ public actor SourceService {
             result = SourceRecommendations(source: source, channels: [channel], sections: [CatalogSection(channel: channel, works: works)], notices: ["此来源暂不提供分类或榜单，仍可打开已保存的作品。"])
         }
         try Task.checkCancellation()
+        result = CatalogTaxonomy.cleaned(result)
         guard result.sourceID == sourceID, result.sourceRevision == source.revision,
               result.channels.allSatisfy({ SourceScope.contains($0.url, in: source.baseURL) }),
               result.sections.allSatisfy({ section in result.channels.contains(section.channel) && section.works.allSatisfy { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) } }) else { throw MangaError.parseMismatch("推荐内容与来源不一致") }
@@ -95,7 +96,7 @@ public actor SourceService {
         let source = try await activeSource(sourceID)
         guard let result = try await store.record(kind: "recommendation-cache", key: sourceID.key, as: SourceRecommendations.self), result.sourceID == sourceID, result.sourceRevision == source.revision,
               result.fetchedAt <= Date().addingTimeInterval(300), result.fetchedAt > Date().addingTimeInterval(-7 * 86_400) else { return nil }
-        return result
+        return CatalogTaxonomy.cleaned(result)
     }
     public func catalogPage(sourceID: SourceID, channelID: String, sort: CatalogSort = .sourceDefault, pageURL: URL? = nil) async throws -> CatalogPage {
         let source = try await activeSource(sourceID)

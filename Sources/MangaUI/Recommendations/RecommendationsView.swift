@@ -2,6 +2,7 @@ import SwiftUI
 import MangaCore
 struct RecommendationsView: View {
     @Environment(AppContainer.self) private var app
+    @State private var showGenres = false
     @State private var showSources = false
     private var snapshots: [SourceRecommendations] { app.currentRecommendations }
     var body: some View {
@@ -15,10 +16,14 @@ struct RecommendationsView: View {
                 if !featured.isEmpty { featureCards }
                 if !app.recommendationGenres.isEmpty {
                     VStack(alignment: .leading, spacing: 14) {
-                        Text("按分类发现").font(.title2.bold())
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
-                            ForEach(app.recommendationGenres, id: \.self) { genre in
-                                NavigationLink(value: Route.genreColumn(genre)) { Text(genre).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14).background(.teal.opacity(0.09), in: RoundedRectangle(cornerRadius: 14)) }.buttonStyle(.plain)
+                        Button { withAnimation(.easeInOut(duration: 0.2)) { showGenres.toggle() } } label: {
+                            HStack { Text("按分类发现").font(.title2.bold()); Text("\(app.recommendationGenres.count) 类").font(.caption).foregroundStyle(.secondary); Spacer(); Image(systemName: showGenres ? "chevron.up" : "chevron.down").foregroundStyle(.secondary) }.contentShape(Rectangle())
+                        }.buttonStyle(.plain).accessibilityIdentifier("recommendation-genres").accessibilityValue(showGenres ? "已展开" : "已收起").accessibilityHint(showGenres ? "点击收起分类" : "点击展开分类")
+                        if showGenres {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
+                                ForEach(app.recommendationGenres, id: \.self) { genre in
+                                    NavigationLink(value: Route.genreColumn(genre)) { Text(genre).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14).background(.teal.opacity(0.09), in: RoundedRectangle(cornerRadius: 14)) }.buttonStyle(.plain)
+                                }
                             }
                         }
                     }

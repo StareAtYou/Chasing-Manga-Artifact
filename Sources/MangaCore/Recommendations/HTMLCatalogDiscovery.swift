@@ -6,7 +6,7 @@ public enum HTMLCatalogDiscovery {
     private static let headingSelector="h1,h2,h3,h4,.list-con-title,.index-rank-title,.rank-title,.index-title"
     private static func popular(_ text:String) -> Bool {
         let text=CatalogTaxonomy.normalized(text).lowercased()
-        return ["排行","人气","热度","热门推荐","popular","most read","most viewed"].contains(where:text.contains)
+        return ["排行","人气","热度","热门推荐","热门漫画","popular","most read","most viewed"].contains(where:text.contains)
     }
     private static func identity(_ url:URL) -> String {
         var c=URLComponents(url:url,resolvingAgainstBaseURL:false)!
@@ -33,13 +33,16 @@ public enum HTMLCatalogDiscovery {
             let genrePath=["/manga-list-","/manga-genre/","/manga-tag/","/genre/","/category/","/tag/","/type/"].contains(where:url.path.contains)
             let isTag=(url.path=="/search.php" && URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.contains(where:{$0.name=="combinedquery" && $0.value?.hasPrefix("#")==true})==true)
             let knownCategoryPath=genrePath || isTag || url.path.contains("/manhua-") || url.path.contains("category.php") || url.path.contains("type.php")
-            let category=knownCategoryPath && (CatalogTaxonomy.known(title) || genrePath || isTag)
+            let rel = try link.attr("rel").lowercased().split(separator: " ")
+            guard !rel.contains("next"), !rel.contains("prev"), !CatalogTaxonomy.isPaginationURL(url) else { continue }
+            let genre = CatalogTaxonomy.genreName(title)
+            let category=genre != nil && knownCategoryPath && (CatalogTaxonomy.known(title) || genrePath || isTag)
             guard category || popular(title) else {continue}
             let kind:CatalogChannelKind=popular(title) && !CatalogTaxonomy.known(title) ? .popular : .genre
             let key=url.absoluteString
             guard seen.insert(key).inserted else {continue}
             let sorts:[CatalogSort]=source.baseURL.host=="www.mangabz.com" || source.baseURL.host=="comicfury.com" ? [.sourceDefault,.popularity,.latest] : [.sourceDefault]
-            channels.append(CatalogChannel(id:key,title:title,url:url,kind:kind,genre:kind == .genre ? CatalogTaxonomy.normalized(title) : nil,sorts:sorts))
+            channels.append(CatalogChannel(id:key,title:title,url:url,kind:kind,genre:kind == .genre ? genre : nil,sorts:sorts))
         }
         return channels
     }
@@ -94,7 +97,7 @@ public enum HTMLCatalogDiscovery {
         }
         sections.append(CatalogSection(channel:rootChannel,works:works))
         var seen=Set(channels.map(\.id));for section in sections where seen.insert(section.channel.id).inserted {channels.append(section.channel)}
-        return SourceRecommendations(source:context.source,channels:channels,sections:sections,notices:notices)
+        return CatalogTaxonomy.cleaned(SourceRecommendations(source:context.source,channels:channels,sections:sections,notices:notices))
     }
     public static func sortedURL(_ channel:CatalogChannel,sort:CatalogSort,source:Source) throws -> URL {
         guard channel.sorts.contains(sort),SourceScope.contains(channel.url,in:source.baseURL) else {throw MangaError.invalidURL}

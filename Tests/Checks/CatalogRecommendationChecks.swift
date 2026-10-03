@@ -42,6 +42,36 @@ private struct ReadOnlyRecommendationAdapter:SourceAdapter {
     func pages(chapter:Chapter,context:ParserContext) async throws -> [PageResource] {Samples.pages(chapter)}
 }
 public let catalogRecommendationChecks:[Check] = [
+    Check("CatalogRecommendationTests.navigationAndStatusNeverBecomeGenres") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = BuiltinSources.candidates()[6]
+        let noise = ["下一頁", "上一页", "首页", "末页", "2", "10", "连载中", "完结", "更新时间", "Next Page", "查看更多", "+", ">"]
+        let html = recommendationHome + noise.enumerated().map { "<a href='/manga-list-0-0-\($0.offset)/'>\($0.element)</a>" }.joined() + "<a href='/genre/strange-tales'>怪谈</a><a href='/manga-list-31-0-10/'>热血</a><a rel='next' href='/genre/adventure?page=2'>冒险</a><a href='/genre/hot'>热门漫画</a>"
+        let (service, _, saved) = try await recommendationFixture(root, client: FixtureHTTPClient([source.baseURL.absoluteString: textResponse(html, source.baseURL)]))
+        let result = try await service.recommendations(sourceID: saved.id)
+        try expect(result.channels.filter { $0.kind == .genre }.compactMap(\.genre) == ["热血", "恋爱", "怪谈"], "Exclude paging/status/sort controls, deduplicate normalized genres, keep legitimate source-specific categories")
+        try expect(result.channels.contains { $0.title == "热门漫画" && $0.kind == .popular }, "Popular catalog stays a ranking channel rather than a genre")
+    },
+    Check("CatalogRecommendationTests.comicFuryUsesTagLabelInsteadOfAddButton") {
+        let source = BuiltinSources.candidates().first { $0.baseURL.host == "comicfury.com" }!
+        let url = source.baseURL.appendingPathComponent("search.php")
+        let html = "<div class='popular-tag'><a data-url='/search.php?combinedquery=%23comedy'>+</a><a data-url='/search.php?combinedquery=%23comedy'> #Comedy</a></div><div class='popular-tag'><a data-url='/search.php?combinedquery=%23sciencefiction'>+</a><a data-url='/search.php?combinedquery=%23sciencefiction'> #Science Fiction</a></div><div class='webcomic-results'><div class='webcomic-result'><h3 class='webcomic-result-title'><a href='/comicprofile.php?url=demo'>本地原创样本</a></h3></div></div>"
+        let context = ParserContext(source: source, client: FixtureHTTPClient([url.absoluteString: textResponse(html, url)]))
+        let result = try await ComicFuryAdapter().recommendations(context: context)
+        try expect(result.channels.filter { $0.kind == .genre }.compactMap(\.genre) == ["搞笑", "科幻"], "ComicFury tag-add buttons cannot replace real normalized tag names")
+    },
+    Check("CatalogRecommendationTests.legacyCacheGenresAreCleanedBeforePresentation") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let (service, store, source) = try await recommendationFixture(root)
+        let labels = ["下一页", "3", "+", "连载中", "更新时间", "熱血", "热血", "Adventure"]
+        let channels = labels.enumerated().map { CatalogChannel(id: "old-\($0.offset)", title: $0.element, url: source.baseURL.appendingPathComponent("genre/\($0.offset)"), kind: .genre, genre: $0.element) }
+        let browse = CatalogChannel(id: "browse", title: "来源浏览", url: source.baseURL, kind: .browse)
+        let snapshot = SourceRecommendations(source: source, channels: channels + [browse], sections: [CatalogSection(channel: browse, works: [Samples.work(source)])])
+        try await store.saveRecommendations(snapshot)
+        let cached = try await service.cachedRecommendations(sourceID: source.id)
+        try expect(cached?.channels.filter { $0.kind == .genre }.compactMap(\.genre) == ["热血", "冒险"], "Previously saved navigation noise is removed without requiring a successful network refresh")
+        try expect(cached?.sections.first?.works.count == 1, "Genre cleanup preserves cached comics")
+    },
     Check("CatalogRecommendationTests.rejectsSameSourceCategoryAndPageRedirects") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let source = BuiltinSources.candidates()[6]

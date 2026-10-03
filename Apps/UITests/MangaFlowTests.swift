@@ -37,7 +37,12 @@ final class MangaFlowTests: XCTestCase {
         #else
         activate(app.tabBars.buttons["推荐"])
         #endif
-        let genre = app.buttons["冒险"]; XCTAssertTrue(genre.waitForExistence(timeout: 15)); activate(genre)
+        let genres = app.buttons["recommendation-genres"]
+        XCTAssertTrue(genres.waitForExistence(timeout: 15)); XCTAssertFalse(app.buttons["冒险"].exists)
+        activate(genres); XCTAssertTrue(app.buttons["冒险"].waitForExistence(timeout: 5))
+        activate(genres); XCTAssertFalse(app.buttons["冒险"].exists)
+        activate(genres)
+        let genre = app.buttons["冒险"]; XCTAssertTrue(genre.waitForExistence(timeout: 5)); activate(genre)
         let next = app.buttons["catalog-next-page"].firstMatch; XCTAssertTrue(next.waitForExistence(timeout: 10)); activate(next)
         let newWork = app.buttons["打开 海边旅人 · 本地样本源 1"].firstMatch; XCTAssertTrue(newWork.waitForExistence(timeout: 10)); activate(newWork)
         let whole = app.buttons["download-whole-work"].firstMatch; XCTAssertTrue(whole.waitForExistence(timeout: 10)); activate(whole)
