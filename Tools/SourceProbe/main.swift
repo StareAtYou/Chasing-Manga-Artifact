@@ -22,9 +22,9 @@ actor DiagnosticTransport: ScopedHTTPTransport {
 }
 func argument(_ name: String) -> String? { guard let index = CommandLine.arguments.firstIndex(of: name), index + 1 < CommandLine.arguments.count else { return nil }; return CommandLine.arguments[index + 1] }
 guard CommandLine.arguments.contains("--online"), let sourceName = argument("--source"), let urlString = argument("--work-url"), let workURL = URL(string: urlString) else {
-    print("Usage: swift run SourceProbe --source guazi|dm5|manhuazhan|mangadex|xkcd|baozi --work-url URL --online"); exit(2)
+    print("Usage: swift run SourceProbe --source guazi|dm5|manhuazhan|mangadex|xkcd|baozi|mangabz|comicfury|qwantz --work-url URL --online"); exit(2)
 }
-let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5][sourceName] ?? -1
+let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5, "mangabz": 6, "comicfury": 7, "qwantz": 8][sourceName] ?? -1
 guard index >= 0 else { print("Unknown source"); exit(2) }
 let source = BuiltinSources.candidates()[index]
 guard let adapter = BuiltinSources.candidateAdapter(for: source) else { print("Adapter pending"); exit(2) }
@@ -47,8 +47,13 @@ do {
     var outcomes: [[String: Any]] = []; var passed = true
     for chapter in selected {
         do {
-            let pages = try await adapter.pages(chapter: chapter, context: context)
-            var outcome: [String: Any] = ["ordinal": chapter.ordinal, "pageCount": pages.count]
+            let sample: PageValidationSample
+            if CommandLine.arguments.contains("--full-pages") {
+                let complete = try await adapter.pages(chapter:chapter,context:context)
+                sample = PageValidationSample(totalCount:complete.count,pages:complete)
+            } else {sample = try await adapter.validationPages(chapter:chapter,context:context)}
+            let pages = sample.pages
+            var outcome: [String: Any] = ["ordinal": chapter.ordinal, "pageCount": sample.totalCount]
             var decoded = 0
             for (imageIndex, page) in (pages.count > 1 ? [pages.first!, pages.last!] : pages).enumerated() {
                 do {

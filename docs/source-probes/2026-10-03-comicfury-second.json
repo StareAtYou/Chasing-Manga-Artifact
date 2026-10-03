@@ -1,0 +1,76 @@
+{
+  "browseCount": 30,
+  "chapterCount": 500,
+  "chapters": [
+    {
+      "firstImage": {
+        "format": "public.png",
+        "height": 908,
+        "width": 3642
+      },
+      "ordinal": 0,
+      "pageCount": 1
+    },
+    {
+      "error": "解析方式不匹配：ComicFury 未返回正文图片",
+      "ordinal": 499
+    }
+  ],
+  "date": "2026-10-03T04:38:39Z",
+  "detail": "parsed",
+  "homepageStatus": 200,
+  "platform": "Version 15.7.7 (Build 24G720)",
+  "readingVerified": false,
+  "requests": [
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "img.comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    }
+  ],
+  "searchCount": 30,
+  "source": "comicfury"
+}

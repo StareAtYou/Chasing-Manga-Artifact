@@ -253,6 +253,22 @@ public let usabilityChecks: [Check] = [
         try expect(task.state == .completed, "Fresh download completes")
         try expect(await counter.count == 0, "Fresh chapter does not resolve every signed page twice")
     },
+    Check("UsabilityTests.sourceExpansionKeepsCustomOriginsAndDeletion") {
+        for removed in [false,true] {
+            let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
+            let app=try await MainActor.run {try AppContainer(root:root,client:StartupCatalogClient(),transfer:FixtureTransfer(data:try generatedPNG()))}
+            let builtin=BuiltinSources.candidates()[6]
+            let custom=Source(name:"用户自定义名",baseURL:builtin.baseURL,enabled:false)
+            try await app.store.save(source:custom)
+            if removed {try await app.store.remove(sourceID:custom.id)}
+            await app.start()
+            let original=try await app.store.source(id:custom.id)
+            let duplicate=try await app.store.source(id:builtin.id)
+            let message=await app.message
+            try expect(message == nil && duplicate == nil && original?.name == "用户自定义名" && original?.enabled == false && original?.removed == removed,"Upgrade must preserve custom origin settings and tombstones without interrupting startup")
+            await app.updateScheduler.stop()
+        }
+    },
     Check("UsabilityTests.freshLaunchEnablesVerifiedBuiltinSearch") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let app = try await MainActor.run { try AppContainer(root: root, client: StartupCatalogClient(), transfer: FixtureTransfer(data: try generatedPNG())) }

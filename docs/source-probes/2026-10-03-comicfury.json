@@ -1,0 +1,77 @@
+{
+  "browseCount": 30,
+  "chapterCount": 247,
+  "chapters": [
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 950,
+        "width": 950
+      },
+      "ordinal": 0,
+      "pageCount": 1
+    },
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 1100,
+        "width": 1100
+      },
+      "ordinal": 246,
+      "pageCount": 1
+    }
+  ],
+  "date": "2026-10-03T04:36:00Z",
+  "detail": "parsed",
+  "homepageStatus": 200,
+  "platform": "Version 15.7.7 (Build 24G720)",
+  "readingVerified": true,
+  "requests": [
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "img.comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "comicfury.com",
+      "status": "200"
+    },
+    {
+      "host": "img.comicfury.com",
+      "status": "200"
+    }
+  ],
+  "searchCount": 15,
+  "source": "comicfury"
+}

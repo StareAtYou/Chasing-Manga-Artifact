@@ -53,3 +53,7 @@ Mac WebKit 与 iOS 真机环境下的验证、两作品各两章的完整源级�
 ## v0.2.1 新增来源与图标
 
 2026-10-03 新增 MangaDex、xkcd 与包子漫画 org，Mac 真实正文探针通过。漫画站搜索仍受原站验证和服务错误影响；本轮 iPhone 真机连接中断，不能声明手机正文验收通过。细节见 [v0.2.1 验证](source-expansion-0.2.1.md)。
+
+## v0.2.2 新增来源
+
+新增 MangaBZ、ComicFury 与 Dinosaur Comics，内置池共 9 个来源。Mac 真实首末图片样本验证通过，ComicFury 有部分仅在原站支持的媒体格式。升级保留用户同地址来源和删除记录。签名仍受 Personal Team 的 7 天期限限制。细节见 [v0.2.2 验证](source-expansion-0.2.2.md)。

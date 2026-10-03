@@ -70,7 +70,16 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public func start(registerBuiltins: Bool = true) async {
         guard !started else { return }; started = true
         await perform {
-            if registerBuiltins { for source in BuiltinSources.candidates() where try await store.source(id: source.id) == nil { try await store.save(source: source) } }
+            if registerBuiltins {
+                // Include tombstones and custom IDs so an upgrade preserves
+                // user-configured or deleted equivalents of new built-ins.
+                let existing = try await store.records(kind: "source", as: Source.self)
+                for source in BuiltinSources.candidates() {
+                    let base = try canonicalSourceURL(source.baseURL)
+                    guard !existing.contains(where: { $0.id == source.id || $0.baseURL == base }) else { continue }
+                    try await store.save(source: source)
+                }
+            }
             try await downloads.restore(); try await refresh()
         }
         if registerBuiltins { await prepareCatalog() }

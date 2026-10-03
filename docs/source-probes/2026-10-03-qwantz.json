@@ -1,0 +1,69 @@
+{
+  "browseCount": 1,
+  "chapterCount": 4510,
+  "chapters": [
+    {
+      "firstImage": {
+        "format": "public.png",
+        "height": 500,
+        "width": 735
+      },
+      "ordinal": 0,
+      "pageCount": 1
+    },
+    {
+      "firstImage": {
+        "format": "public.png",
+        "height": 500,
+        "width": 735
+      },
+      "ordinal": 4509,
+      "pageCount": 1
+    }
+  ],
+  "date": "2026-10-03T04:36:01Z",
+  "detail": "parsed",
+  "homepageStatus": 200,
+  "platform": "Version 15.7.7 (Build 24G720)",
+  "readingVerified": true,
+  "requests": [
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.qwantz.com",
+      "status": "200"
+    }
+  ],
+  "searchCount": 1,
+  "source": "qwantz"
+}

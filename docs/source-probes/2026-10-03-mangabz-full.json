@@ -1,0 +1,539 @@
+{
+  "browseCount": 59,
+  "chapterCount": 578,
+  "chapters": [
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 1375,
+        "width": 911
+      },
+      "lastImage": {
+        "format": "public.jpeg",
+        "height": 1000,
+        "width": 533
+      },
+      "ordinal": 0,
+      "pageCount": 208
+    },
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 1138,
+        "width": 800
+      },
+      "lastImage": {
+        "format": "public.jpeg",
+        "height": 1600,
+        "width": 1200
+      },
+      "ordinal": 577,
+      "pageCount": 17
+    }
+  ],
+  "date": "2026-10-03T04:37:48Z",
+  "detail": "parsed",
+  "homepageStatus": 200,
+  "platform": "Version 15.7.7 (Build 24G720)",
+  "readingVerified": true,
+  "requests": [
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    }
+  ],
+  "searchCount": 12,
+  "source": "mangabz"
+}

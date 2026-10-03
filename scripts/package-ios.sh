@@ -23,18 +23,24 @@ codesign --verify --deep --strict "$app"
 staging=$(mktemp -d "$root/.build/ios-payload.XXXXXX")
 trap 'rm -rf "$staging"' EXIT
 security cms -D -i "$app/embedded.mobileprovision" > "$staging/profile.plist"
-python3 - "$staging/profile.plist" "$app/Info.plist" "$MANGA_DEVICE_UDID" "$output/package-info.json" <<'PY'
-import datetime,json,plistlib,sys
+codesign -d --extract-certificates="$staging/signing-cert" "$app" 2>/dev/null
+python3 - "$staging/profile.plist" "$app/Info.plist" "$MANGA_DEVICE_UDID" "$output/package-info.json" "$staging/signing-cert0" <<'PY'
+import datetime,json,plistlib,sys,subprocess
 profile=plistlib.load(open(sys.argv[1],'rb')); app=plistlib.load(open(sys.argv[2],'rb'))
 now=datetime.datetime.now(datetime.timezone.utc)
 expiry=profile['ExpirationDate'].replace(tzinfo=datetime.timezone.utc)
 if sys.argv[3] not in profile.get('ProvisionedDevices',[]): sys.exit('描述文件不包含目标设备，停止打包。')
-if expiry <= now: sys.exit('描述文件已过期，停止打包。')
+cert_text=subprocess.check_output(['openssl','x509','-inform','DER','-in',sys.argv[5],'-enddate','-noout'],text=True).strip().split('=',1)[1]
+cert_expiry=datetime.datetime.strptime(cert_text,'%b %d %H:%M:%S %Y %Z').replace(tzinfo=datetime.timezone.utc)
+effective_expiry=min(expiry,cert_expiry)
+if effective_expiry <= now: sys.exit('描述文件或签名证书已过期，停止打包。')
+creation=profile['CreationDate'].replace(tzinfo=datetime.timezone.utc)
 identifier=app['CFBundleIdentifier']; authorized=profile['Entitlements']['application-identifier']
 if not (authorized.endswith('.'+identifier) or authorized.endswith('.*')): sys.exit('签名应用标识不匹配。')
-info={'bundleIdentifier':identifier,'version':app['CFBundleShortVersionString'],'build':app['CFBundleVersion'],'minimumOSVersion':app['MinimumOSVersion'],'sdk':app['DTSDKName'],'profileExpiresUTC':expiry.isoformat(),'targetDeviceIncluded':True,'profileDeviceCount':len(profile['ProvisionedDevices']),'signing':'Apple Development'}
+info={'bundleIdentifier':identifier,'version':app['CFBundleShortVersionString'],'build':app['CFBundleVersion'],'minimumOSVersion':app['MinimumOSVersion'],'sdk':app['DTSDKName'],'profileExpiresUTC':expiry.isoformat(),'certificateExpiresUTC':cert_expiry.isoformat(),'effectiveExpiresUTC':effective_expiry.isoformat(),'profileLifetimeDays':round((expiry-creation).total_seconds()/86400,2),'remainingHoursAtPackaging':round((effective_expiry-now).total_seconds()/3600,1),'targetDeviceIncluded':True,'profileDeviceCount':len(profile['ProvisionedDevices']),'signing':'Apple Development'}
 open(sys.argv[4],'w').write(json.dumps(info,ensure_ascii=False,indent=2)+'\n')
-print('设备授权有效，签名到期时间：'+expiry.isoformat())
+print('设备授权有效，实际到期时间：'+effective_expiry.isoformat())
+print('Apple 签发描述文件期限：'+str(info['profileLifetimeDays'])+' 天；本次打包剩余约 '+str(info['remainingHoursAtPackaging'])+' 小时。')
 PY
 mkdir -p "$staging/Payload"
 ditto "$app" "$staging/Payload/MangaIOS.app"

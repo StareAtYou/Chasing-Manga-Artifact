@@ -1,10 +1,10 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.1 修复 iOS 黑图标，扩充为 6 个内置来源，改善浏览与搜索验证状态。固定使用 Xcode 16.4 / iOS 18.5 SDK 完成双端 Release 构建；本轮 iOS 新版安装包已生成，设备连接超时后的覆盖安装与正文验收仍待执行。历史安装记录见 [iOS 交付记录](docs/ios-delivery.md)，本轮范围见 [v0.2.1 验证](docs/source-expansion-0.2.1.md)。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.2 扩充为 9 个内置来源，保留 iOS 图标修复，并兼容升级前手动添加或删除的来源。固定使用 Xcode 16.4 / iOS 18.5 SDK 完成双端 Release 构建；新版 iOS 安装包已生成，设备当前断开连接，覆盖安装与手机正文验收仍待执行。历史安装记录见 [iOS 交付记录](docs/ios-delivery.md)，本轮范围见 [v0.2.2 验证](docs/source-expansion-0.2.2.md)。
 
 ## 功能
 
-- 内置漫画站、瓜子漫画、DM5、MangaDex、包子漫画 org、xkcd 的独立适配器；访问限制与解析失败分别提示。MangaDex 显示章节语言及汉化组，xkcd 为英文原创系列。
+- 内置漫画站、瓜子漫画、DM5、MangaDex、包子漫画 org、MangaBZ、ComicFury、Dinosaur Comics、xkcd 的独立适配器；访问限制与解析失败分别提示。MangaDex 显示章节语言及汉化组，xkcd 与 Dinosaur Comics 为英文原创系列，ComicFury 为英文原创漫画平台。
 - 自定义网址与作品样本：依次尝试内置解析器，验证目录和真实图片后绑定方法与版本；有限样本或歧义需要明确处理；样本须位于来源配置的网址与子路径范围内。
 - 多源搜索、手动关联/解除关联、用户选择阅读来源与跨源续读候选；仅阅读能力的来源可从已验证作品或详情网址进入。
 - 书架、历史、更新、离线下载；通知默认关闭。
@@ -13,7 +13,7 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 
 ## macOS 直接使用
 
-解压 `ChasingManga-0.2.1-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+解压 `ChasingManga-0.2.2-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
 
 自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
 

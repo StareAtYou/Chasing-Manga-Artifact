@@ -1,0 +1,103 @@
+{
+  "browseCount": 59,
+  "chapterCount": 243,
+  "chapters": [
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 1002,
+        "width": 1420
+      },
+      "lastImage": {
+        "format": "public.jpeg",
+        "height": 990,
+        "width": 672
+      },
+      "ordinal": 0,
+      "pageCount": 98
+    },
+    {
+      "firstImage": {
+        "format": "public.jpeg",
+        "height": 1402,
+        "width": 989
+      },
+      "lastImage": {
+        "format": "public.jpeg",
+        "height": 1024,
+        "width": 713
+      },
+      "ordinal": 242,
+      "pageCount": 18
+    }
+  ],
+  "date": "2026-10-03T04:38:40Z",
+  "detail": "parsed",
+  "homepageStatus": 200,
+  "platform": "Version 15.7.7 (Build 24G720)",
+  "readingVerified": true,
+  "requests": [
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "www.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    },
+    {
+      "host": "image.mangabz.com",
+      "status": "200"
+    }
+  ],
+  "searchCount": 12,
+  "source": "mangabz"
+}

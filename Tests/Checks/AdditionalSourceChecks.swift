@@ -10,6 +10,13 @@ private let feedJSON = #"{"result":"ok","total":3,"data":[{"id":"34f61dca-9a42-4
 private let homeJSON = #"{"result":"ok","baseUrl":"https://cdn.mangadex.network","chapter":{"hash":"abc","data":["large1.jpg","large2.jpg"],"dataSaver":["small1.jpg","small2.jpg"]}}"#
 private let xkcdJSON = #"{"num":405,"safe_title":"Journal","title":"Journal","img":"https://imgs.xkcd.com/comics/journal.png","alt":"Original alt text","year":"2008","month":"4","day":"7"}"#
 public let additionalSourceChecks: [Check] = [
+    Check("AdditionalSourceTests.expansionPreservesExistingSourceIdentities") {
+        let sources=BuiltinSources.candidates()
+        try expect(sources.count == 9 && Set(sources.map(\.id)).count == sources.count,"All added sources have distinct stable IDs")
+        for index in 0..<6 {
+            try expect(sources[index].id.rawValue == UUID(uuidString:"00000000-0000-0000-0000-00000000010\(index)"),"Source expansion preserves persisted original identities")
+        }
+    },
     Check("AdditionalSourceTests.mangaDexDetailsAndCredits") {
         let a = try adapter(dex); let url = dex.baseURL.appendingPathComponent("title/"+mangaUUID)
         let endpoint = URL(string:"https://api.mangadex.org/manga/\(mangaUUID)?includes%5B%5D=cover_art&includes%5B%5D=author&includes%5B%5D=artist")!

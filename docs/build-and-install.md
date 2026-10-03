@@ -59,9 +59,11 @@ MANGA_DEVICE_UDID=自己的设备UDID \
 MANGA_INSTALL=1 scripts/package-ios.sh
 ```
 
-脚本使用原生设备 SDK 构建 Release，验证代码签名、描述文件有效期和目标设备授权，然后生成 `release/ios/ChasingManga-0.2.0-iOS.ipa`、SHA-256 和不含设备标识的 `package-info.json`。没有有效签名或设备授权时停止，不生成未签名安装包。`MANGA_INSTALL=1` 还会通过 USB 安装并尝试启动应用；省略时只打包。完整构建日志保留在本机 `release/ios/build.log`，可能包含签名和设备信息，请勿公开。
+脚本使用原生设备 SDK 构建 Release，验证代码签名、描述文件有效期和目标设备授权，然后生成 `release/ios/ChasingManga-当前版本-iOS.ipa`、SHA-256 和不含设备标识的 `package-info.json`。没有有效签名或设备授权时停止，不生成未签名安装包。`MANGA_INSTALL=1` 还会通过 USB 安装并尝试启动应用；省略时只打包。完整构建日志保留在本机 `release/ios/build.log`，可能包含签名和设备信息，请勿公开。
 
 IPA 只适用于描述文件授权的设备。免费 Personal Team 的开发描述文件通常有效 **7 天**，到期需重新签名安装；签名信息中的实际有效期为准。[Apple 个人账户说明](https://developer.apple.com/help/account/basics/about-your-developer-account)。该流程不会发布 App Store/TestFlight，也不会升级 Mac 或手机系统。
+
+付费团队的正常联网开发或 Ad Hoc 描述文件通常可达约一年；实际有效期由 Apple 签发的描述文件与证书共同决定。切换 Team 后重新打包，脚本会显示实际到期时间。不要选择仅有效 7 天的离线描述文件。详见 [签名期限说明](source-expansion-0.2.2.md)。
 
 ## 工程生成与测试
 
