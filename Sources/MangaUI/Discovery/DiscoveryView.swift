@@ -5,33 +5,19 @@ struct DiscoveryView: View {
     @State private var query = ""
     @State private var selectedSources = Set<SourceID>()
     @State private var knownSearchSources = Set<SourceID>()
-    @State private var browseSource: SourceID?
-    @State private var limits: [SourceID: Int] = [:]
     @State private var showSources = false
     @State private var showWorkURL = false
-    @State private var visibleSource: Source?
+    @State private var showSearchFilter = false
     private var searchable: Set<SourceID> { Set(app.sourceList.filter { $0.enabled && $0.capabilities.contains(.search) }.map(\.id)) }
     var body: some View {
         ScrollView { LazyVStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("漫画来源").font(.headline)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), alignment: .top)], alignment: .leading, spacing: 12) {
-                    ForEach(app.sourceList) { source in sourceCard(source) }
-                }
-            }
             if !query.isEmpty { searchResults }
             else {
                 if !app.validatedWorks.isEmpty { workGrid(title: "已验证的作品", works: app.validatedWorks) }
-                ForEach(app.sourceList.filter { $0.enabled && (browseSource == nil || browseSource == $0.id) }) { source in
-                    let works = app.browsingBySource[source.id] ?? []
-                    if !works.isEmpty {
-                        workGrid(title: source.name, works: Array(works.prefix(limits[source.id] ?? 24)))
-                        if works.count > (limits[source.id] ?? 24) { Button("查看更多 · 共 \(works.count) 部") { limits[source.id] = (limits[source.id] ?? 24) + 48 }.buttonStyle(.bordered) }
-                    }
+                if app.validatedWorks.isEmpty {
+                    EmptyState(title: "寻找喜欢的漫画", icon: "magnifyingglass", message: "搜索作品名称、打开作品链接，或前往推荐浏览分类和来源专栏。")
                 }
-                if app.browsingBySource.values.allSatisfy(\.isEmpty), app.catalogLoading.isEmpty {
-                    EmptyState(title: "暂未取得浏览内容", icon: "network", message: "可以重试来源检查，或从链接入口打开漫画详情。")
-                }
+                Button("浏览推荐与分类") { app.section = .recommendations }.buttonStyle(.borderedProminent)
             }
         }.padding(24) }.navigationTitle("发现")
         .searchable(text: $query, prompt: "跨源搜索漫画名称")
@@ -41,31 +27,21 @@ struct DiscoveryView: View {
             search()
         }
         .toolbar {
-            Button { browseSource = nil; Task { await app.prepareCatalog() } } label: { Label("刷新来源", systemImage: "arrow.clockwise") }.disabled(!app.catalogLoading.isEmpty)
+            Button { Task { await app.prepareCatalog() } } label: { Label("刷新来源", systemImage: "arrow.clockwise") }.disabled(!app.catalogLoading.isEmpty)
+            Button { showSearchFilter = true } label: { Label("搜索范围", systemImage: "line.3.horizontal.decrease.circle") }
             Button { showWorkURL = true } label: { Label("打开作品链接", systemImage: "link") }
             Button { showSources = true } label: { Label("管理漫画源", systemImage: "slider.horizontal.3") }
         }
         .sheet(isPresented: $showWorkURL) { OpenWorkURLSheet() }
         .sheet(isPresented: $showSources) { NavigationStack { SourceManagementView() } }
-        .sheet(item: $visibleSource) { SourceWebView(source: $0) }
+        .sheet(isPresented: $showSearchFilter) {
+            NavigationStack {
+                List(app.sourceList.filter { searchable.contains($0.id) }) { source in
+                    Toggle(source.name, isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { selectedSources.insert(source.id) } else { selectedSources.remove(source.id) }; search() }))
+                }.navigationTitle("参与跨源搜索的来源").toolbar { Button("完成") { showSearchFilter = false } }.frame(minWidth: 320, minHeight: 360)
+            }
+        }
         .onDisappear { app.cancelSearch() }
-    }
-    private func sourceCard(_ source: Source) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack { Text(source.name).font(.headline); Spacer(); if app.catalogLoading.contains(source.id) { ProgressView().controlSize(.small) } }
-            Toggle("参与跨源搜索", isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { selectedSources.insert(source.id) } else { selectedSources.remove(source.id) }; search() })).font(.caption).disabled(!source.enabled || !source.capabilities.contains(.search))
-            if source.enabled, let count = app.browsingBySource[source.id]?.count, count > 0 { Text("可浏览 · \(count) 部作品").font(.caption).foregroundStyle(.secondary) }
-            Text(source.baseURL.host ?? source.name).font(.caption).foregroundStyle(.secondary)
-            if !source.enabled { Text("已停用").font(.caption).foregroundStyle(.secondary) }
-            else if let errors = app.catalogErrors[source.id], !errors.isEmpty {
-                ForEach(errors.keys.sorted(), id: \.self) { kind in Text("\(kind == "search" ? "搜索" : "浏览")：\(errors[kind]?.localizedDescription ?? "")").font(.caption).foregroundStyle(.secondary).lineLimit(2) }
-            } else if source.capabilities.contains(.search) { Text("可跨源搜索 · \(app.browsingBySource[source.id]?.count ?? 0) 部浏览作品").font(.caption).foregroundStyle(.secondary) }
-            HStack {
-                Button("浏览") { query = ""; browseSource = source.id; if app.browsingBySource[source.id]?.isEmpty != false { Task { await app.inspectSource(source.id) } } }
-                Button("重新检查") { Task { await app.inspectSource(source.id) } }
-                Button("来源页面 / 验证") { visibleSource = source }
-            }.buttonStyle(.bordered).disabled(!source.enabled || app.catalogLoading.contains(source.id))
-        }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
     }
     @ViewBuilder private var searchResults: some View {
         if app.searching { ProgressView("正在搜索，结果会逐步显示…") }

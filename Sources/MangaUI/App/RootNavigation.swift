@@ -18,14 +18,18 @@ public struct RootNavigation<ReaderContent: View>: View {
         .environment(app).tint(.teal).onChange(of: app.section) { _, _ in app.path = [] }
         .preferredColorScheme(app.settings.theme == .system ? nil : (app.settings.theme == .dark ? .dark : .light))
         .task { await app.start() }
+        .sheet(isPresented: $app.showDownloads) {
+            NavigationStack { DownloadsView(workID: app.downloadWorkID).toolbar { Button("完成") { app.showDownloads = false } } }
+                .environment(app).frame(minWidth: 320, minHeight: 420)
+        }
         .alert("操作未完成", isPresented: Binding(get: { app.message != nil }, set: { if !$0 { app.message = nil } })) { Button("好", role: .cancel) { app.message = nil } } message: { Text(app.message ?? "") }
     }
     private func stack(_ section: AppSection) -> some View {
         NavigationStack(path: Binding(get: { section == app.section ? app.path : [] }, set: { if section == app.section { app.path = $0 } })) {
             sectionView(section).navigationDestination(for: Route.self) { route in
-                switch route { case .work(let id): WorkDetailView(workID: id).id(id); case .chapters(let id): ChapterListView(sourceWorkID: id).id(id); case .reader(let id): readerDestination(id).id(id) }
+                switch route { case .work(let id): WorkDetailView(workID: id).id(id); case .chapters(let id): ChapterListView(sourceWorkID: id).id(id); case .reader(let id): readerDestination(id).id(id); case .sourceColumn(let id): SourceColumnView(sourceID: id); case .genreColumn(let genre): GenreColumnView(genre: genre); case .catalogChannel(let source, let channel): CatalogColumnView(sourceID: source, channelID: channel) }
             }
         }
     }
-    @ViewBuilder private func sectionView(_ section: AppSection) -> some View { switch section { case .library: LibraryView(); case .discovery: DiscoveryView(); case .updates: UpdatesView(); case .downloads: DownloadsView() } }
+    @ViewBuilder private func sectionView(_ section: AppSection) -> some View { switch section { case .library: LibraryView(); case .recommendations: RecommendationsView(); case .discovery: DiscoveryView(); case .updates: UpdatesView() } }
 }

@@ -1,6 +1,12 @@
 import Foundation
 import MangaCore
 extension AppContainer {
+    public func presentDownloads(for workID: WorkID? = nil) {
+        section = .library; path = []; downloadWorkID = workID; showDownloads = true
+    }
+    public func shelfDownloads(for workID: WorkID) -> [DownloadTask] {
+        downloadList.filter { workSourceIDs[workID]?.contains($0.chapter.id.sourceWorkID) == true }
+    }
     public func associationChoices(for workID: WorkID) async throws -> [SourceWork] {
         let associated = Set(try await store.sourceWorks(for: workID).map(\.id))
         return catalog.filter { !associated.contains($0.id) }.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
@@ -39,7 +45,9 @@ extension AppContainer {
     public func removeFromShelf(_ workID: WorkID) async {
         await perform {
             let sourceWorks = try await store.sourceWorks(for: workID)
-            try await downloads.deleteDownloaded(sourceWorkIDs: Set(sourceWorks.map(\.id)))
+            let ids = Set(sourceWorks.map(\.id))
+            if !preparationSourceWorkIDs.isDisjoint(with: ids) { cancelPreparation() }
+            try await downloads.deleteDownloaded(sourceWorkIDs: ids)
             for source in sourceWorks { try await updates.setFollowed(false, sourceWorkID: source.id) }
             try await store.setOnShelf(false, workID: workID); try await refresh()
         }

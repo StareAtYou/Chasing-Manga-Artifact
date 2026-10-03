@@ -10,6 +10,7 @@ struct WorkDetailView: View {
     @State private var candidates: [AssociationCandidate] = []
     @State private var selectedCandidate: AssociationCandidate?
     @State private var showAssociation = false
+    @State private var showRemoval = false
     @State private var expandedSummary = false
     private var primary: SourceWork? { sources.first { $0.id == work?.preferredSourceWorkID } ?? sources.first }
     var body: some View {
@@ -20,10 +21,11 @@ struct WorkDetailView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(work.title).font(.title2.bold()); if let primary, !primary.author.isEmpty { Text(primary.author).foregroundStyle(.secondary) }
                         Text("\(sources.count) 个关联来源 · 自行选择阅读").font(.subheadline).foregroundStyle(.secondary)
-                        Button(work.isOnShelf == false ? "加入书架" : "移出书架") { Task {
-                            if work.isOnShelf == false, let id = primary?.id { await app.addToShelf(workID, sourceWorkID: id) } else { await app.removeFromShelf(workID) }
-                            await reload()
-                        } }.buttonStyle(.borderedProminent)
+                        Button(work.isOnShelf == false ? "加入书架" : "移出书架") {
+                            if work.isOnShelf == false, let id = primary?.id { Task { await app.addToShelf(workID, sourceWorkID: id); await reload() } }
+                            else { showRemoval = true }
+                        }.buttonStyle(.borderedProminent)
+                        if work.isOnShelf != false { Button("管理下载") { app.presentDownloads(for: workID) }.buttonStyle(.bordered) }
                     }
                 }
                 if let summary = primary?.summary, !summary.isEmpty { VStack(alignment: .leading, spacing: 8) { Text(summary).lineLimit(expandedSummary ? nil : 5).foregroundStyle(.secondary); if summary.count > 120 { Button(expandedSummary ? "收起简介" : "展开简介") { expandedSummary.toggle() }.font(.caption) } } }
@@ -36,6 +38,10 @@ struct WorkDetailView: View {
             } else { ProgressView("读取作品资料…") }
         }.padding(24).frame(maxWidth: 900, alignment: .leading).frame(maxWidth: .infinity) }.navigationTitle(work?.title ?? "作品详情")
             .task { await reload() }
+            .confirmationDialog("移出书架并删除下载？", isPresented: $showRemoval, titleVisibility: .visible) {
+                Button("移出并删除全部下载", role: .destructive) { Task { await app.removeFromShelf(workID); await reload() } }
+                Button("取消", role: .cancel) { }
+            } message: { Text("该作品所有关联来源的下载都会删除，阅读历史和进度会保留。") }
             .sheet(isPresented: $showAssociation, onDismiss: { Task { await reload() } }) { if let work { SourceAssociationSheet(work: work, existingIDs: Set(sources.map(\.id))) } }
             .confirmationDialog("确认将这个来源关联到当前作品？", isPresented: Binding(get: { selectedCandidate != nil }, set: { if !$0 { selectedCandidate = nil } }), titleVisibility: .visible) {
                 Button("确认关联") { if let selectedCandidate { Task { await app.linkResult(selectedCandidate.work, to: workID); await reload() } }; selectedCandidate = nil }
@@ -56,7 +62,7 @@ struct WorkDetailView: View {
                 Spacer(minLength: 0)
             }
             Button {
-                app.startWholeDownload(source.id); app.section = .downloads
+                app.startWholeDownload(source.id); app.presentDownloads(for: workID)
             } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
                 .buttonStyle(.bordered).disabled(!online || app.preparingBatch)
                 .accessibilityIdentifier("download-whole-work")

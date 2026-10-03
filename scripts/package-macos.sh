@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-MANGA_VERSION="${MANGA_VERSION:-0.2.3}"
+MANGA_VERSION="${MANGA_VERSION:-0.3.0}"
 MANGA_OUTPUT="${MANGA_OUTPUT:-$PWD/release}"
 MANGA_ARCH="${MANGA_ARCH:-$(uname -m)}"
 if [[ "$MANGA_ARCH" == universal ]]; then

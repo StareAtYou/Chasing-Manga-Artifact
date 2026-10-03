@@ -29,6 +29,21 @@ final class MangaFlowTests: XCTestCase {
         #endif
         let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.lifetime = .keepAlways; add(screenshot)
     }
+    @MainActor func testRecommendationsPaginationAndShelfDownloadSheet() throws {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
+        #if os(macOS)
+        let recommendation = app.outlines.staticTexts["推荐"].firstMatch
+        if recommendation.waitForExistence(timeout: 10) { recommendation.click() } else { activate(app.staticTexts["推荐"].firstMatch) }
+        #else
+        activate(app.tabBars.buttons["推荐"])
+        #endif
+        let genre = app.buttons["冒险"]; XCTAssertTrue(genre.waitForExistence(timeout: 15)); activate(genre)
+        let next = app.buttons["catalog-next-page"].firstMatch; XCTAssertTrue(next.waitForExistence(timeout: 10)); activate(next)
+        let newWork = app.buttons["打开 海边旅人 · 本地样本源 1"].firstMatch; XCTAssertTrue(newWork.waitForExistence(timeout: 10)); activate(newWork)
+        let whole = app.buttons["download-whole-work"].firstMatch; XCTAssertTrue(whole.waitForExistence(timeout: 10)); activate(whole)
+        let offline = app.buttons["离线阅读"].firstMatch; XCTAssertTrue(offline.waitForExistence(timeout: 15))
+        activate(offline); waitUntilReady(app)
+    }
     @MainActor private func waitUntilReady(_ app: XCUIApplication) { XCTAssertTrue(app.staticTexts["reader-ready"].waitForExistence(timeout: 15)) }
     @MainActor private func chooseMode(_ title: String, app: XCUIApplication) {
         #if os(macOS)

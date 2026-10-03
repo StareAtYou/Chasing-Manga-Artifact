@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.3 新增所选来源整部漫画一键下载，保留 9 个内置来源和 iOS 图标修复。固定使用 Xcode 16.4 / iOS 18.5 SDK 完成双端 Release 构建，已在 macOS 15.7.7 验证本地样本的整部下载与离线阅读，并在连接的 iOS 18.5 手机成功覆盖安装和启动；本轮未自动操作手机正文界面。功能与验证范围见 [整部下载](docs/whole-work-download.md)，历史来源验证见 [v0.2.2 验证](docs/source-expansion-0.2.2.md)。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.0 新增原生推荐、真实分类专栏和分页浏览，并将下载管理合并到书架。保留 9 个内置来源、自定义解析器绑定、跨源搜索、关联来源、整部下载与离线阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。功能和验证范围见 [v0.3.0 交付记录](docs/shelf-recommendations-0.3.0.md)。
 
 ## 功能
 
@@ -14,7 +14,7 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 
 ## macOS 直接使用
 
-解压 `ChasingManga-0.2.3-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+解压 `ChasingManga-0.3.0-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
 
 自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
 

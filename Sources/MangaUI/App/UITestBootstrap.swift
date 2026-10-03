@@ -36,10 +36,20 @@ private struct LocalComicClient: HTTPClient {
         if request.url.path.hasSuffix(".png") { return ResourceResponse(data: image, finalURL: request.url, statusCode: 200) }
         let html: String
         if request.url.path.hasPrefix("/chapter/") { html = "<main data-manga-reader>" + (0..<4).map { "<img data-page-id='\($0)' src='/image/\($0).png'>" }.joined() + "</main>" }
-        else if request.url.path == "/work/demo" { html = "<h1 data-manga-title data-work-id='demo'>原创样本</h1>" + (0..<2).map { "<a data-chapter-id='\($0)' href='/chapter/\($0)'>第\($0 + 1)话</a>" }.joined() }
-        else { html = "<a data-work-id='demo' href='/work/demo'>原创样本</a>" }
+        else if request.url.path.hasPrefix("/work/") {
+            let slug = request.url.lastPathComponent
+            let title = Self.title(slug)
+            html = "<h1 data-manga-title data-work-id='\(slug)'>\(title)</h1><img data-manga-cover src='/image/cover.png'><p data-manga-summary>原创本地测试内容，用于验证分类、翻页和阅读流程。</p>" + (0..<2).map { "<a data-chapter-id='\($0)' href='/chapter/\($0)'>第\($0 + 1)话</a>" }.joined()
+        } else if request.url.path.hasPrefix("/genre/") {
+            let second = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.queryItems?.contains { $0.name == "page" && $0.value == "2" } == true
+            html = (second ? ["forest", "ocean"] : ["demo", "stars"]).map(Self.link).joined() + (second ? "" : "<a rel='next' href='?page=2'>下一页</a>")
+        } else {
+            html = "<nav><a href='/genre/adventure'>冒险</a><a href='/genre/romance'>恋爱</a></nav><section><h2>人气排行</h2>" + ["demo", "stars", "forest"].map(Self.link).joined() + "</section>"
+        }
         return ResourceResponse(data: Data(html.utf8), finalURL: request.url, statusCode: 200)
     }
+    static func title(_ slug: String) -> String { switch slug { case "stars": "星际来信"; case "forest": "林间日记"; case "ocean": "海边旅人"; default: "原创样本" } }
+    static func link(_ slug: String) -> String { "<a data-work-id='\(slug)' href='/work/\(slug)'><img src='/image/cover.png'>\(title(slug))</a>" }
 }
 private struct LocalComicTransfer: PageTransferring {
     let data: Data

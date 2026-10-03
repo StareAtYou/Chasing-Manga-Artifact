@@ -17,7 +17,7 @@ struct ChapterListView: View {
             HStack { SourceBadge(name: app.sourceName(sourceWorkID.sourceID)); Spacer(); Text("\(chapters.count) 章").foregroundStyle(.secondary) }
             if let progress = app.history.first(where: { $0.sourceWorkID == sourceWorkID }) { Button("继续阅读：\(app.chapterTitle(progress.chapterID))") { Task { await app.resume(progress) } }.buttonStyle(.borderedProminent) }
             Button {
-                app.startWholeDownload(sourceWorkID); app.section = .downloads
+                app.startWholeDownload(sourceWorkID); app.presentDownloads()
             } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
                 .buttonStyle(.bordered).disabled(loading || work == nil || app.preparingBatch || !app.sourceList.contains { $0.id == sourceWorkID.sourceID && $0.enabled })
                 .accessibilityIdentifier("download-whole-work")

@@ -3,7 +3,12 @@ import Observation
 import SwiftUI
 import MangaCore
 import MangaPlatform
-public enum AppSection: String, CaseIterable, Identifiable { case library, discovery, updates, downloads; public var id: Self { self }; public var title: String { switch self { case .library: "书架"; case .discovery: "发现"; case .updates: "更新"; case .downloads: "下载" } }; public var icon: String { switch self { case .library: "books.vertical"; case .discovery: "magnifyingglass"; case .updates: "sparkles"; case .downloads: "arrow.down.circle" } } }
+public enum AppSection: String, CaseIterable, Identifiable {
+    case library, recommendations, discovery, updates
+    public var id: Self { self }
+    public var title: String { switch self { case .library: "书架"; case .recommendations: "推荐"; case .discovery: "发现"; case .updates: "更新" } }
+    public var icon: String { switch self { case .library: "books.vertical"; case .recommendations: "square.stack.3d.up"; case .discovery: "magnifyingglass"; case .updates: "sparkles" } }
+}
 @MainActor @Observable public final class AppContainer {
     public let store: LibraryStore
     public let sources: SourceService
@@ -20,6 +25,13 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public var catalog: [SourceWork] = []
     public var sourceList: [Source] = []
     public var downloadList: [DownloadTask] = []
+    public var showDownloads = false
+    public var downloadWorkID: WorkID?
+    public var recommendationSnapshots: [SourceID: SourceRecommendations] = [:]
+    public var recommendationLoading = Set<SourceID>()
+    public var recommendationErrors: [SourceID: String] = [:]
+    public var genrePreviews: [SourceID: [CatalogSection]] = [:]
+    public var preparationSourceWorkIDs = Set<SourceWorkID>()
     public var updateStatuses: [UpdateCheckStatus] = []
     public var updateList: [UpdateObservation] = []
     public var history: [ReadingProgress] = []

@@ -1,6 +1,6 @@
 # Unified Shelf and Recommendations Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Unite downloads with the shelf and add truthful source/category recommendations.
 
@@ -31,21 +31,21 @@
 **Files:** LibraryStore.swift, DownloadManager.swift, AppContainer+Downloads.swift, AppContainer+Library.swift, new ShelfDownloadChecks.swift and native test wrapper.
 **Interfaces:** Store preparation epoch lookup/invalidation and conditional save; manager enqueue/retry optional expected epoch, deleteDownloaded(sourceWorkIDs: Set<SourceWorkID>); existing AppContainer queue methods and removeFromShelf remain source compatible.
 
-- [ ] Write checks for single/whole auto-shelf without new following; grouped removal preserving unrelated downloads/history; suspended preparation removal and explicit re-download; legacy migration with disabled source.
-- [ ] Observe expected assertion failures through Swift Testing.
-- [ ] Make conditional task save + shelf ownership atomic; invalidate epochs before cancellation/deletion, preserve failed-cleanup visibility.
-- [ ] Run whole suite and shared checks; commit only task files.
+- [x] Write checks for single/whole auto-shelf without new following; grouped removal preserving unrelated downloads/history; suspended preparation removal and explicit re-download; legacy migration with disabled source.
+- [x] Observe expected assertion failures through Swift Testing.
+- [x] Make conditional task save + shelf ownership atomic; invalidate epochs before cancellation/deletion, preserve failed-cleanup visibility.
+- [x] Run whole suite and shared checks; commit only task files.
 
 ### Task 2: Real source catalog channels
 
 **Files:** new CatalogRecommendationModels.swift and HTMLCatalogDiscovery.swift; SourceAdapter.swift, SourceService.swift; relevant built-in adapters; new CatalogRecommendationChecks.swift/native wrapper.
 **Interfaces:** CatalogChannel(id,title,url,kind), CatalogPage(works,nextURL), SourceRecommendations(sourceID,revision,channels,sections,fetchedAt). Adapter recommendations(context:)/catalogPage(channel:pageURL:context:) with safe defaults. SourceService recommendations(sourceID:)/catalogPage(sourceID:channelID:pageURL:) validate current persisted snapshot and source revision.
 
-- [ ] Pin synthetic fixtures based on actual public structures: genuine category links, popular sections versus latest updates, next-page identity, external-link rejection, unsupported source fallback.
-- [ ] Observe RED, then implement normalized taxonomy and source-scoped channel discovery with bounded source requests.
-- [ ] Add supported homepage/category/ranking integration for MangaBZ, DM5, Baozi, ComicFury and MangaDex; other adapters expose actual available browsing/series data.
-- [ ] Persist successful snapshots, preserve partial source successes, prevent changed/disabled source responses publishing; verify fixtures and bounded real website probes.
-- [ ] Run whole suite/shared checks and commit task files.
+- [x] Pin synthetic fixtures based on actual public structures: genuine category links, popular sections versus latest updates, next-page identity, external-link rejection, unsupported source fallback.
+- [x] Observe RED, then implement normalized taxonomy and source-scoped channel discovery with bounded source requests.
+- [x] Add supported homepage/category/ranking integration for MangaBZ, DM5, Baozi, ComicFury and MangaDex; other adapters expose actual available browsing/series data.
+- [x] Persist successful snapshots, preserve partial source successes, prevent changed/disabled source responses publishing; verify fixtures and bounded real website probes.
+- [x] Run whole suite/shared checks and commit task files.
 
 ### Task 3: Native navigation and recommendation browsing
 

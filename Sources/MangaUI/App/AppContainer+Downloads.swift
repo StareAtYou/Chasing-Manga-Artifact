@@ -35,8 +35,8 @@ extension AppContainer {
     }
     public func queueDownloads(_ chapters: [Chapter]) async {
         guard !preparingBatch, !Task.isCancelled else { return }
-        resetPreparation()
-        defer { preparingBatch = false }
+        resetPreparation(); preparationSourceWorkIDs = Set(chapters.map { $0.id.sourceWorkID })
+        defer { preparingBatch = false; preparationSourceWorkIDs = [] }
         do {
             var epochs: [SourceWorkID: UUID] = [:]
             for id in Set(chapters.map { $0.id.sourceWorkID }) { epochs[id] = try await downloads.preparationEpoch(for: id) }
@@ -47,8 +47,8 @@ extension AppContainer {
     /// list or silently include another associated source's chapters.
     public func queueWholeWork(_ id: SourceWorkID) async {
         guard !preparingBatch, !Task.isCancelled else { return }
-        resetPreparation(title: "整部漫画")
-        defer { preparingBatch = false }
+        resetPreparation(title: "整部漫画"); preparationSourceWorkIDs = [id]
+        defer { preparingBatch = false; preparationSourceWorkIDs = [] }
         do {
             let epoch = try await downloads.preparationEpoch(for: id)
             guard let work = try await store.sourceWork(id: id) else { throw MangaError.chapterUnavailable }

@@ -1,5 +1,5 @@
 import Foundation
-public enum Route: Codable, Hashable, Sendable { case work(WorkID), chapters(SourceWorkID), reader(ChapterID) }
+public enum Route: Codable, Hashable, Sendable { case work(WorkID), chapters(SourceWorkID), reader(ChapterID), sourceColumn(SourceID), genreColumn(String), catalogChannel(SourceID, String) }
 public struct NavigationState: Sendable {
     private let store: LibraryStore
     private let downloads: DownloadManager?
