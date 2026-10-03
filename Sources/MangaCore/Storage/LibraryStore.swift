@@ -143,6 +143,11 @@ public actor LibraryStore {
     public func progress(for id: SourceWorkID) throws -> ReadingProgress? { try record(kind: "progress", key: id.key, as: ReadingProgress.self) }
     public func save(preferences: ReaderPreferences, for id: WorkID) throws { try saveRecord(kind: "preferences", key: id.key, value: preferences) }
     public func preferences(for id: WorkID) throws -> ReaderPreferences { try record(kind: "preferences", key: id.key, as: ReaderPreferences.self) ?? ReaderPreferences() }
+    public func saveRecommendations(_ snapshot: SourceRecommendations) throws {
+        try Task.checkCancellation()
+        guard let source = try source(id: snapshot.sourceID), source.enabled, !source.removed, source.revision == snapshot.sourceRevision else { throw CancellationError() }
+        try saveRecord(kind: "recommendation-cache", key: source.id.key, value: snapshot)
+    }
     public func downloadTask(id: UUID) throws -> DownloadTask? { try record(kind: "download", key: id.uuidString, as: DownloadTask.self) }
     public func downloadPreparationEpoch(for id: SourceWorkID) throws -> UUID {
         if let epoch = try record(kind: "download-epoch", key: id.key, as: UUID.self) { return epoch }

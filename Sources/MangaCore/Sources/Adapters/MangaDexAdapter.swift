@@ -17,7 +17,7 @@ public struct MangaDexAdapter: SourceAdapter {
     }
     private struct Manga: Decodable { let id: String; let attributes: Attributes; let relationships: [Relationship] }
     private struct MangaEnvelope: Decodable { let result: String; let data: Manga }
-    private struct MangaList: Decodable { let result: String; let data: [Manga] }
+    private struct MangaList: Decodable { let result: String; let data: [Manga]; let total: Int? }
     private struct ChapterAttributes: Decodable {
         let chapter: String?; let title: String?; let translatedLanguage: String
         let pages: Int; let externalUrl: String?; let isUnavailable: Bool?
@@ -61,6 +61,48 @@ public struct MangaDexAdapter: SourceAdapter {
         let value = try await json(MangaList.self, url: endpoint("manga", parameters), context: context)
         guard value.result == "ok" else { throw MangaError.parseMismatch("MangaDex 返回错误") }
         return try value.data.map { try work($0, source: context.source) }
+    }
+    private struct TagAttributes: Decodable { let name: [String:String]; let group: String }
+    private struct Tag: Decodable { let id: String; let attributes: TagAttributes }
+    private struct Tags: Decodable { let result: String; let data: [Tag] }
+    public func recommendations(context: ParserContext) async throws -> SourceRecommendations {
+        let tags = try await json(Tags.self, url: endpoint("manga/tag"), context: context)
+        guard tags.result == "ok" else { throw MangaError.parseMismatch("MangaDex 分类接口错误") }
+        let popular = CatalogChannel(id: "popular", title: "关注人气榜", url: context.source.baseURL.appendingPathComponent("titles"), kind: .popular)
+        let latest = CatalogChannel(id: "latest", title: "最近更新", url: context.source.baseURL.appendingPathComponent("titles"), kind: .browse)
+        var channels = [popular, latest]
+        for tag in tags.data where tag.attributes.group == "genre" && UUID(uuidString: tag.id) != nil {
+            let title = preferred(tag.attributes.name)
+            guard !title.isEmpty else { continue }
+            let url = context.source.baseURL.appendingPathComponent("titles").appending(queryItems: [item("includedTags[]",tag.id)])
+            channels.append(CatalogChannel(id: "tag:" + tag.id, title: CatalogTaxonomy.normalized(title), url: url, kind: .genre, genre: CatalogTaxonomy.normalized(title), sorts: [.sourceDefault,.popularity,.latest]))
+        }
+        let ranked = try await catalogPage(channel: popular, sort: .sourceDefault, pageURL: nil, context: context)
+        let updates = try await catalogPage(channel: latest, sort: .sourceDefault, pageURL: nil, context: context)
+        return SourceRecommendations(source: context.source, channels: channels, sections: [CatalogSection(channel:popular,works:ranked.works),CatalogSection(channel:latest,works:updates.works)])
+    }
+    public func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage {
+        guard channel.sorts.contains(sort), SourceScope.contains(channel.url,in:context.source.baseURL) else { throw MangaError.invalidURL }
+        let offset: Int
+        if let pageURL {
+            guard SourceScope.contains(pageURL,in:context.source.baseURL),pageURL.path==channel.url.path,
+                  let text=URLComponents(url:pageURL,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="offset"})?.value,
+                  let value=Int(text), value>=0, value<=10_000 else {throw MangaError.invalidURL}
+            offset=value
+        } else {offset=0}
+        let popular = sort == .popularity || (sort == .sourceDefault && channel.kind != .browse)
+        var params=[item("limit","40"),item("offset",String(offset)),item("contentRating[]","safe"),item("includes[]","cover_art"),item(popular ? "order[followedCount]" : "order[latestUploadedChapter]","desc")]
+        if channel.kind == .genre {
+            let tag=String(channel.id.dropFirst(4))
+            guard channel.id.hasPrefix("tag:"),UUID(uuidString:tag) != nil else {throw MangaError.invalidURL}
+            params.append(item("includedTags[]",tag))
+        }
+        let value=try await json(MangaList.self,url:endpoint("manga",params),context:context)
+        guard value.result=="ok" else {throw MangaError.parseMismatch("MangaDex 分类列表错误")}
+        let works=try value.data.map {try work($0,source:context.source)}
+        let hasMore = value.total.map {offset+value.data.count < $0} ?? (value.data.count==40)
+        let next = !value.data.isEmpty && hasMore ? channel.url.appending(queryItems:[item("offset",String(offset+value.data.count))]) : nil
+        return CatalogPage(works:works,nextURL:next)
     }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(query: nil, context: context) }
     public func search(query: String, context: ParserContext) async throws -> [SourceWork] { try await listing(query: query, context: context) }

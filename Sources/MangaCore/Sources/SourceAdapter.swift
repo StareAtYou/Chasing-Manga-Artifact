@@ -20,6 +20,8 @@ public protocol SourceAdapter: Sendable {
     var id: String { get }
     var version: Int { get }
     var capabilities: SourceCapabilities { get }
+    func recommendations(context: ParserContext) async throws -> SourceRecommendations
+    func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage
     func browse(context: ParserContext) async throws -> [SourceWork]
     func search(query: String, context: ParserContext) async throws -> [SourceWork]
     func details(url: URL, context: ParserContext) async throws -> SourceWork
@@ -28,6 +30,16 @@ public protocol SourceAdapter: Sendable {
     func validationPages(chapter: Chapter, context: ParserContext) async throws -> PageValidationSample
 }
 public extension SourceAdapter {
+    func recommendations(context: ParserContext) async throws -> SourceRecommendations {
+        let works = try await browse(context: context)
+        let series = ["xkcd.com", "www.xkcd.com", "www.qwantz.com"].contains(context.source.baseURL.host ?? "")
+        let channel = CatalogChannel(id: "browse", title: series ? "原创系列" : "来源浏览", url: context.source.baseURL, kind: series ? .series : .browse)
+        return SourceRecommendations(source: context.source, channels: [channel], sections: [CatalogSection(channel: channel, works: works)])
+    }
+    func catalogPage(channel: CatalogChannel, sort: CatalogSort = .sourceDefault, pageURL: URL? = nil, context: ParserContext) async throws -> CatalogPage {
+        guard pageURL == nil, sort == .sourceDefault, channel.url == context.source.baseURL else { throw MangaError.unsupported("此来源暂不提供分类分页") }
+        return CatalogPage(works: try await browse(context: context))
+    }
     func validationPages(chapter: Chapter, context: ParserContext) async throws -> PageValidationSample {
         let pages = try await pages(chapter: chapter, context: context)
         return PageValidationSample(totalCount: pages.count, pages: pages)

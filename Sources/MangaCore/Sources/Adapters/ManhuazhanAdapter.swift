@@ -9,6 +9,16 @@ public struct ManhuazhanAdapter: SourceAdapter {
         var template = HTMLTemplate(); template.title = "h1"; template.cover = ".d-vod-pic img"; template.author = ".d-vod-type p:contains(作者)"; template.summary = ".d-des"; template.chapters = "a[href^='/chapter/']"; template.readerImages = "#ChapterContent img"; template.nextPage = "a[data-chapter-page-next]"
         return HTMLTemplateAdapter(id: id, template: template)
     }
+    public func recommendations(context: ParserContext) async throws -> SourceRecommendations {
+        try await HTMLCatalogDiscovery.recommendations(adapter: self, context: context, rootURL: context.source.baseURL)
+    }
+    public func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage {
+        let url: URL
+        if let pageURL { url = pageURL } else { url = try HTMLCatalogDiscovery.sortedURL(channel, sort: sort, source: context.source) }
+        guard SourceScope.contains(url, in: context.source.baseURL) else { throw MangaError.invalidURL }
+        let works = try await listing(ResourceRequest(url: url), context: context)
+        return try HTMLCatalogDiscovery.page(html: await context.text(url), works: works, url: url, source: context.source)
+    }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(ResourceRequest(url: context.source.baseURL), context: context) }
     public func search(query: String, context: ParserContext) async throws -> [SourceWork] {
         var components = URLComponents(); components.queryItems = [URLQueryItem(name: "key", value: query)]

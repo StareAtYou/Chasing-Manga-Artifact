@@ -9,6 +9,16 @@ public struct DM5Adapter: SourceAdapter {
         if html.contains("您所在地区无法观看该漫画") { throw MangaError.regionRestricted }
         let doc = try SwiftSoup.parse(html); try HTMLAccessGuard.check(doc); return doc
     }
+    public func recommendations(context: ParserContext) async throws -> SourceRecommendations {
+        try await HTMLCatalogDiscovery.recommendations(adapter: self, context: context, rootURL: context.source.baseURL)
+    }
+    public func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage {
+        let url: URL
+        if let pageURL { url = pageURL } else { url = try HTMLCatalogDiscovery.sortedURL(channel, sort: sort, source: context.source) }
+        guard SourceScope.contains(url, in: context.source.baseURL) else { throw MangaError.invalidURL }
+        let works = try await listing(url, context: context)
+        return try HTMLCatalogDiscovery.page(html: await context.text(url), works: works, url: url, source: context.source)
+    }
     public func browse(context: ParserContext) async throws -> [SourceWork] { try await listing(context.source.baseURL, context: context) }
     public func search(query: String, context: ParserContext) async throws -> [SourceWork] { try await listing(context.source.baseURL.appendingPathComponent("search").appending(queryItems: [URLQueryItem(name: "title", value: query), URLQueryItem(name: "language", value: "1")]), context: context) }
     private func listing(_ url: URL, context: ParserContext) async throws -> [SourceWork] {

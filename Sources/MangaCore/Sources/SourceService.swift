@@ -5,6 +5,7 @@ public actor SourceService {
     private let client: any HTTPClient
     private let verifier: any ImageVerifying
     private let renderer: (any PageRenderer)?
+    private var allowedCatalogPages: [String: Set<URL>] = [:]
     private var generations: [SourceID: UUID] = [:]
     public init(store: LibraryStore, registry: ParserRegistry, client: any HTTPClient, verifier: any ImageVerifying, renderer: (any PageRenderer)? = nil) {
         self.store = store; self.registry = registry; self.client = client; self.verifier = verifier; self.renderer = renderer
@@ -70,6 +71,49 @@ public actor SourceService {
         latest.capabilities = capabilities; try await store.save(source: latest)
         if !works.isEmpty { try await store.saveRecord(kind: "catalog-cache", key: sourceID.key, value: works) }
         return CatalogInspection(sourceID: sourceID, works: works, errors: errors)
+    }
+    public func recommendations(sourceID: SourceID) async throws -> SourceRecommendations {
+        let source = try await activeSource(sourceID)
+        let adapter = try await adapter(for: sourceID)
+        let context = ParserContext(source: source, client: DocumentSessionClient(client), renderer: renderer)
+        let result: SourceRecommendations
+        do { result = try await adapter.recommendations(context: context) }
+        catch MangaError.unsupported(let feature) where feature == "浏览" {
+            let works = try await store.allSourceWorks().filter { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }
+            let channel = CatalogChannel(id: "saved-works", title: "已打开的作品", url: source.baseURL, kind: .browse)
+            result = SourceRecommendations(source: source, channels: [channel], sections: [CatalogSection(channel: channel, works: works)], notices: ["此来源暂不提供分类或榜单，仍可打开已保存的作品。"])
+        }
+        try Task.checkCancellation()
+        guard result.sourceID == sourceID, result.sourceRevision == source.revision,
+              result.channels.allSatisfy({ SourceScope.contains($0.url, in: source.baseURL) }),
+              result.sections.allSatisfy({ section in result.channels.contains(section.channel) && section.works.allSatisfy { $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) } }) else { throw MangaError.parseMismatch("推荐内容与来源不一致") }
+        guard result.sections.contains(where: { !$0.works.isEmpty }) else { throw MangaError.parseMismatch("此来源暂未提供可浏览作品") }
+        try await store.saveRecommendations(result)
+        return result
+    }
+    public func cachedRecommendations(sourceID: SourceID) async throws -> SourceRecommendations? {
+        let source = try await activeSource(sourceID)
+        guard let result = try await store.record(kind: "recommendation-cache", key: sourceID.key, as: SourceRecommendations.self), result.sourceID == sourceID, result.sourceRevision == source.revision,
+              result.fetchedAt <= Date().addingTimeInterval(300), result.fetchedAt > Date().addingTimeInterval(-7 * 86_400) else { return nil }
+        return result
+    }
+    public func catalogPage(sourceID: SourceID, channelID: String, sort: CatalogSort = .sourceDefault, pageURL: URL? = nil) async throws -> CatalogPage {
+        let source = try await activeSource(sourceID)
+        guard let snapshot = try await cachedRecommendations(sourceID: sourceID), let channel = snapshot.channels.first(where: { $0.id == channelID }), channel.sorts.contains(sort) else { throw MangaError.unsupported("分类已失效，请刷新推荐") }
+        let key = sourceID.key + ":" + String(source.revision) + ":" + channelID + ":" + sort.rawValue
+        if let pageURL { guard SourceScope.contains(pageURL, in: source.baseURL), allowedCatalogPages[key]?.contains(pageURL) == true else { throw MangaError.invalidURL } }
+        let result: CatalogPage
+        if pageURL == nil, sort == .sourceDefault, (channel.kind == .popular && channel.url == source.baseURL || channel.id == "saved-works"), let section = snapshot.sections.first(where: { $0.channel.id == channelID }) { result = CatalogPage(works: section.works) }
+        else {
+            let context = ParserContext(source: source, client: DocumentSessionClient(client), renderer: renderer)
+            result = try await adapter(for: sourceID).catalogPage(channel: channel, sort: sort, pageURL: pageURL, context: context)
+        }
+        try Task.checkCancellation()
+        guard let latest = try await store.source(id: sourceID), latest.enabled, !latest.removed, latest.revision == source.revision else { throw CancellationError() }
+        guard result.works.allSatisfy({ $0.id.sourceID == sourceID && SourceScope.contains($0.url, in: source.baseURL) }), result.nextURL.map({ SourceScope.contains($0, in: source.baseURL) }) != false else { throw MangaError.parseMismatch("分类内容跳转到了其他来源") }
+        if pageURL == nil { allowedCatalogPages[key] = [] }
+        if let next = result.nextURL { allowedCatalogPages[key, default: []].insert(next) }
+        return result
     }
     public func setEnabled(_ enabled: Bool, sourceID: SourceID) async throws {
         try await store.setSourceEnabled(enabled, id: sourceID)
