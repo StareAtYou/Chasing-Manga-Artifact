@@ -8,6 +8,7 @@ public actor DownloadManager {
     private let refresh: Refresh?
     private var jobs: [UUID: Task<Void, Never>] = [:]
     private var tokens: [UUID: UUID] = [:]
+    private var removingWorks = Set<SourceWorkID>()
     public init(store: LibraryStore, transfer: any PageTransferring, verifier: any ImageVerifying, root: URL, refresh: Refresh? = nil) throws {
         self.store = store; self.transfer = transfer; self.verifier = verifier; self.refresh = refresh
         offlineDirectory = root.appendingPathComponent("offline", isDirectory: true)
@@ -18,15 +19,25 @@ public actor DownloadManager {
     private func validatePages(_ pages: [PageResource], chapter: Chapter) throws {
         guard !pages.isEmpty, pages.allSatisfy({ $0.id.chapterID == chapter.id }), Set(pages.map(\.id)).count == pages.count, Set(pages.map(\.ordinal)).count == pages.count else { throw MangaError.parseMismatch("下载页面列表无效") }
     }
-    public func enqueue(chapter: Chapter, pages: [PageResource]) async throws -> UUID {
-        try validatePages(pages, chapter: chapter)
+    public func preparationEpoch(for id: SourceWorkID) async throws -> UUID {
+        guard !removingWorks.contains(id) else { throw CancellationError() }
+        return try await store.downloadPreparationEpoch(for: id)
+    }
+    public func enqueue(chapter: Chapter, pages: [PageResource], preparationEpoch: UUID? = nil) async throws -> UUID {
+        try Task.checkCancellation(); try validatePages(pages, chapter: chapter)
+        let epoch: UUID
+        if let preparationEpoch { epoch = preparationEpoch } else { epoch = try await self.preparationEpoch(for: chapter.id.sourceWorkID) }
+        guard !removingWorks.contains(chapter.id.sourceWorkID) else { throw CancellationError() }
         if let existing = try await tasks().first(where: { $0.chapter.id == chapter.id && $0.state != .cancelled }) {
-            if [.failed, .paused].contains(existing.state) { try await resume(taskID: existing.id) }
+            if [.failed, .paused].contains(existing.state) { try await resume(taskID: existing.id, preparationEpoch: epoch) }
+            try await store.ensureDownloadShelfOwner(for: chapter.id.sourceWorkID, expectedEpoch: epoch)
             return existing.id
         }
         let source = try await store.source(id: chapter.id.sourceWorkID.sourceID)
         let task = DownloadTask(chapter: chapter, pages: pages.sorted { $0.ordinal < $1.ordinal }, sourceSnapshot: source)
-        _ = try await store.saveDownload(task: task, manifest: OfflineManifest(taskID: task.id, chapterID: chapter.id))
+        try Task.checkCancellation()
+        guard !removingWorks.contains(chapter.id.sourceWorkID) else { throw CancellationError() }
+        _ = try await store.saveDownload(task: task, manifest: OfflineManifest(taskID: task.id, chapterID: chapter.id), expectedWorkEpoch: epoch, bringToShelf: true)
         await schedule(); return task.id
     }
     private func folder(_ id: UUID) -> URL { offlineDirectory.appendingPathComponent(id.uuidString, isDirectory: true) }
@@ -90,21 +101,38 @@ public actor DownloadManager {
         if tokens[id] == generation { jobs.removeValue(forKey: id); tokens.removeValue(forKey: id) }
         await schedule()
     }
-    private func transition(_ id: UUID, to state: DownloadState) async throws {
+    private func transition(_ id: UUID, to state: DownloadState, preparationEpoch: UUID? = nil) async throws {
         guard var task = try await task(id: id) else { return }
         let old = task.generation; task.generation = UUID(); task.state = state; if state == .queued { task.needsRefresh = true }; task.error = nil; task.updatedAt = Date()
-        guard try await store.saveDownload(task: task, manifest: nil, expectedGeneration: old) else { return }
+        guard try await store.saveDownload(task: task, manifest: nil, expectedGeneration: old, expectedWorkEpoch: preparationEpoch, bringToShelf: state == .queued) else { return }
         jobs.removeValue(forKey: id)?.cancel(); tokens.removeValue(forKey: id)
         await schedule()
     }
     public func pause(taskID: UUID) async throws { if try await task(id: taskID)?.state != .completed { try await transition(taskID, to: .paused) } }
-    public func resume(taskID: UUID) async throws { if try await task(id: taskID)?.state != .completed { try await transition(taskID, to: .queued) } }
-    public func retry(taskID: UUID) async throws { try await resume(taskID: taskID) }
+    public func resume(taskID: UUID, preparationEpoch: UUID? = nil) async throws {
+        try Task.checkCancellation()
+        guard let task = try await task(id: taskID), !removingWorks.contains(task.chapter.id.sourceWorkID) else { return }
+        let epoch: UUID
+        if let preparationEpoch { epoch = preparationEpoch } else { epoch = try await self.preparationEpoch(for: task.chapter.id.sourceWorkID) }
+        if task.state != .completed { try await transition(taskID, to: .queued, preparationEpoch: epoch) }
+        else { try await store.ensureDownloadShelfOwner(for: task.chapter.id.sourceWorkID, expectedEpoch: epoch) }
+    }
+    public func retry(taskID: UUID, preparationEpoch: UUID? = nil) async throws { try await resume(taskID: taskID, preparationEpoch: preparationEpoch) }
     public func cancel(taskID: UUID) async throws { try await transition(taskID, to: .cancelled) }
     public func pause(sourceID: SourceID) async throws { for task in try await tasks() where task.chapter.id.sourceWorkID.sourceID == sourceID && [.running, .queued].contains(task.state) { try await pause(taskID: task.id) } }
     public func deleteDownloaded(chapterID: ChapterID) async throws {
         for task in try await tasks() where task.chapter.id == chapterID {
             try await cancel(taskID: task.id)
+            if FileManager.default.fileExists(atPath: folder(task.id).path) { try FileManager.default.removeItem(at: folder(task.id)) }
+            try await store.deleteDownload(taskID: task.id)
+        }
+    }
+    public func deleteDownloaded(sourceWorkIDs: Set<SourceWorkID>) async throws {
+        removingWorks.formUnion(sourceWorkIDs); defer { removingWorks.subtract(sourceWorkIDs) }
+        try await store.invalidateDownloadPreparations(for: sourceWorkIDs)
+        let pending = try await tasks().filter { sourceWorkIDs.contains($0.chapter.id.sourceWorkID) }
+        for task in pending { try await cancel(taskID: task.id) }
+        for task in pending {
             if FileManager.default.fileExists(atPath: folder(task.id).path) { try FileManager.default.removeItem(at: folder(task.id)) }
             try await store.deleteDownload(taskID: task.id)
         }
@@ -118,6 +146,10 @@ public actor DownloadManager {
             if task.state == .completed && (before != manifest.entries.count || manifest.entries.count != task.pages.count) { task.state = .failed; task.error = .invalidImage }
             if task.state == .running { task.state = .queued }; if task.state == .queued { task.needsRefresh = true }
             _ = try await store.saveDownload(task: task, manifest: manifest, expectedGeneration: task.generation)
+        }
+        for task in try await tasks() {
+            let hasContent = (try await store.offlineManifest(taskID: task.id)?.entries.isEmpty) == false
+            if task.state != .cancelled || hasContent { try await store.ensureDownloadShelfOwner(for: task.chapter.id.sourceWorkID) }
         }
         await schedule()
     }

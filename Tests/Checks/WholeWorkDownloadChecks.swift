@@ -2,7 +2,7 @@ import Foundation
 import MangaCore
 import MangaPlatform
 import MangaUI
-private actor WholeDownloadState {
+actor WholeDownloadState {
     var restricted = false
     var fails = false
     var blocked = false
@@ -36,8 +36,8 @@ private struct WholeDownloadAdapter:SourceAdapter {
     func chapters(work:SourceWork,context:ParserContext) async throws -> [Chapter] {await state.catalogue(work)}
     func pages(chapter:Chapter,context:ParserContext) async throws -> [PageResource] {try await state.read(chapter)}
 }
-private func wholeFixture(_ root:URL,state:WholeDownloadState) async throws -> (AppContainer,SourceWork) {
-    let app=try await MainActor.run {try AppContainer(root:root,client:FixtureHTTPClient([:]),registry:ParserRegistry(adapters:[WholeDownloadAdapter(state:state)]),transfer:FixtureTransfer(data:try generatedPNG()))}
+func wholeFixture(_ root:URL,state:WholeDownloadState,transfer:(any PageTransferring)?=nil) async throws -> (AppContainer,SourceWork) {
+    let app=try await MainActor.run {try AppContainer(root:root,client:FixtureHTTPClient([:]),registry:ParserRegistry(adapters:[WholeDownloadAdapter(state:state)]),transfer:transfer ?? FixtureTransfer(data:try generatedPNG()))}
     var source=Samples.sourceA;source.binding=ParserBinding(parserID:"whole-download-fixture")
     try await app.store.save(source:source)
     let work=Samples.work(source)

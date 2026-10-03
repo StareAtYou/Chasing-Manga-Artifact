@@ -38,7 +38,9 @@ extension AppContainer {
     }
     public func removeFromShelf(_ workID: WorkID) async {
         await perform {
-            for source in try await store.sourceWorks(for: workID) { try await updates.setFollowed(false, sourceWorkID: source.id) }
+            let sourceWorks = try await store.sourceWorks(for: workID)
+            try await downloads.deleteDownloaded(sourceWorkIDs: Set(sourceWorks.map(\.id)))
+            for source in sourceWorks { try await updates.setFollowed(false, sourceWorkID: source.id) }
             try await store.setOnShelf(false, workID: workID); try await refresh()
         }
     }

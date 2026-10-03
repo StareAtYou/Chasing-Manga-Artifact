@@ -2,28 +2,32 @@ import Foundation
 import MangaCore
 extension AppContainer {
     public func queueDownload(_ chapter: Chapter) async throws {
+        try await queueDownload(chapter, epoch: downloads.preparationEpoch(for: chapter.id.sourceWorkID))
+    }
+    private func queueDownload(_ chapter: Chapter, epoch: UUID) async throws {
         try Task.checkCancellation()
         guard !preparingChapters.contains(chapter.id) else { return }
         preparingChapters.insert(chapter.id); defer { preparingChapters.remove(chapter.id) }
         let existing = try await downloads.tasks().first(where: { $0.chapter.id == chapter.id && $0.state != .cancelled })
         try Task.checkCancellation()
         if let existing {
-            if [.failed, .paused].contains(existing.state) { try await downloads.retry(taskID: existing.id) }
+            if [.failed, .paused].contains(existing.state) { try await downloads.retry(taskID: existing.id, preparationEpoch: epoch) }
+            else { try await store.ensureDownloadShelfOwner(for: chapter.id.sourceWorkID, expectedEpoch: epoch) }
             try await refresh(); return
         }
         guard chapter.access == .available else { throw MangaError.chapterUnavailable }
         let pages = try await sources.pages(chapter: chapter, priority: .download)
-        try Task.checkCancellation(); _ = try await downloads.enqueue(chapter: chapter, pages: pages); try await refresh()
+        try Task.checkCancellation(); _ = try await downloads.enqueue(chapter: chapter, pages: pages, preparationEpoch: epoch); try await refresh()
     }
     private func resetPreparation(title: String? = nil) {
         preparingBatch = true; preparationTotal = 0; preparationFinished = 0; preparationErrors = [:]; preparationChapterTitles = [:]
         preparationFailure = nil; preparationWorkTitle = title; preparationSkipped = 0; preparationExisting = 0; preparationCancelled = false
     }
-    private func prepareDownloads(_ chapters: [Chapter]) async {
+    private func prepareDownloads(_ chapters: [Chapter], epochs: [SourceWorkID: UUID]) async {
         preparationTotal = chapters.count
         for chapter in chapters {
             if Task.isCancelled { preparationCancelled = true; break }
-            do { try await queueDownload(chapter) }
+            do { guard let epoch = epochs[chapter.id.sourceWorkID] else { throw CancellationError() }; try await queueDownload(chapter, epoch: epoch) }
             catch is CancellationError { preparationCancelled = true; break }
             catch { preparationErrors[chapter.id] = error.localizedDescription; preparationChapterTitles[chapter.id] = chapter.title }
             preparationFinished += 1
@@ -33,7 +37,11 @@ extension AppContainer {
         guard !preparingBatch, !Task.isCancelled else { return }
         resetPreparation()
         defer { preparingBatch = false }
-        await prepareDownloads(chapters)
+        do {
+            var epochs: [SourceWorkID: UUID] = [:]
+            for id in Set(chapters.map { $0.id.sourceWorkID }) { epochs[id] = try await downloads.preparationEpoch(for: id) }
+            await prepareDownloads(chapters, epochs: epochs)
+        } catch { preparationCancelled = true }
     }
     /// Refresh the selected source's full directory. Never use the filtered UI
     /// list or silently include another associated source's chapters.
@@ -42,6 +50,7 @@ extension AppContainer {
         resetPreparation(title: "整部漫画")
         defer { preparingBatch = false }
         do {
+            let epoch = try await downloads.preparationEpoch(for: id)
             guard let work = try await store.sourceWork(id: id) else { throw MangaError.chapterUnavailable }
             preparationWorkTitle = work.title
             let fetched = try await sources.loadWork(url: work.url, sourceID: id.sourceID)
@@ -55,7 +64,7 @@ extension AppContainer {
             preparationSkipped = chapters.filter { $0.access != .available }.count
             let available = chapters.filter { $0.access == .available }
             preparationExisting = available.filter { existing.contains($0.id) }.count
-            await prepareDownloads(available.filter { !existing.contains($0.id) })
+            await prepareDownloads(available.filter { !existing.contains($0.id) }, epochs: [id: epoch])
         } catch is CancellationError { preparationCancelled = true }
         catch { preparationFailure = error.localizedDescription; message = error.localizedDescription }
     }

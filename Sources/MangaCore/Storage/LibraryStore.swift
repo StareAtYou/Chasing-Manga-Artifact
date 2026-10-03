@@ -96,16 +96,17 @@ public actor LibraryStore {
         return WorkID(rawValue: uuid)
     }
     public func createWork(from id: SourceWorkID, onShelf: Bool = true) throws -> Work {
+        try db.transaction { try createWorkRecord(from: id, onShelf: onShelf) }
+    }
+    private func createWorkRecord(from id: SourceWorkID, onShelf: Bool) throws -> Work {
         if let workID = try workID(for: id), var work = try work(id: workID) {
             if onShelf && work.isOnShelf == false { work.isOnShelf = true; try saveRecord(kind: "work", key: workID.key, value: work) }; return work
         }
         guard let sourceWork = try sourceWork(id: id) else { throw MangaError.storage("作品不存在") }
-        return try db.transaction {
-            let work = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id, isOnShelf: onShelf)
-            try saveRecord(kind: "work", key: work.id.key, value: work)
-            _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?)", [.text(id.key), .text(work.id.key)])
-            return work
-        }
+        let work = Work(title: sourceWork.title, coverURL: sourceWork.coverURL, preferredSourceWorkID: id, isOnShelf: onShelf)
+        try saveRecord(kind: "work", key: work.id.key, value: work)
+        _ = try db.rows("INSERT INTO associations(source_work,work_id) VALUES(?,?)", [.text(id.key), .text(work.id.key)])
+        return work
     }
     public func setPreferredSource(_ sourceWorkID: SourceWorkID, for workID: WorkID) throws {
         guard try self.workID(for: sourceWorkID) == workID, var work = try work(id: workID) else { throw MangaError.storage("来源尚未关联到此作品") }
@@ -143,11 +144,26 @@ public actor LibraryStore {
     public func save(preferences: ReaderPreferences, for id: WorkID) throws { try saveRecord(kind: "preferences", key: id.key, value: preferences) }
     public func preferences(for id: WorkID) throws -> ReaderPreferences { try record(kind: "preferences", key: id.key, as: ReaderPreferences.self) ?? ReaderPreferences() }
     public func downloadTask(id: UUID) throws -> DownloadTask? { try record(kind: "download", key: id.uuidString, as: DownloadTask.self) }
+    public func downloadPreparationEpoch(for id: SourceWorkID) throws -> UUID {
+        if let epoch = try record(kind: "download-epoch", key: id.key, as: UUID.self) { return epoch }
+        let epoch = UUID(); try saveRecord(kind: "download-epoch", key: id.key, value: epoch); return epoch
+    }
+    public func invalidateDownloadPreparations(for ids: Set<SourceWorkID>) throws {
+        try db.transaction { for id in ids { try saveRecord(kind: "download-epoch", key: id.key, value: UUID()) } }
+    }
+    public func ensureDownloadShelfOwner(for id: SourceWorkID, expectedEpoch: UUID? = nil) throws {
+        try db.transaction {
+            if let expectedEpoch, try downloadPreparationEpoch(for: id) != expectedEpoch { throw CancellationError() }
+            if try sourceWork(id: id) != nil { _ = try createWorkRecord(from: id, onShelf: true) }
+        }
+    }
     public func downloadTasks() throws -> [DownloadTask] { try records(kind: "download", as: DownloadTask.self).sorted { $0.updatedAt > $1.updatedAt } }
     public func offlineManifest(taskID: UUID) throws -> OfflineManifest? { try record(kind: "offline-manifest", key: taskID.uuidString, as: OfflineManifest.self) }
-    public func saveDownload(task: DownloadTask, manifest: OfflineManifest?, expectedGeneration: UUID? = nil) throws -> Bool {
+    public func saveDownload(task: DownloadTask, manifest: OfflineManifest?, expectedGeneration: UUID? = nil, expectedWorkEpoch: UUID? = nil, bringToShelf: Bool = false) throws -> Bool {
         try db.transaction {
             if let expectedGeneration, try downloadTask(id: task.id)?.generation != expectedGeneration { return false }
+            if let expectedWorkEpoch, try downloadPreparationEpoch(for: task.chapter.id.sourceWorkID) != expectedWorkEpoch { throw CancellationError() }
+            if bringToShelf, try sourceWork(id: task.chapter.id.sourceWorkID) != nil { _ = try createWorkRecord(from: task.chapter.id.sourceWorkID, onShelf: true) }
             try saveRecord(kind: "download", key: task.id.uuidString, parent: task.chapter.id.key, value: task)
             if let manifest {
                 guard manifest.taskID == task.id, manifest.chapterID == task.chapter.id else { throw MangaError.storage("离线清单身份不一致") }
