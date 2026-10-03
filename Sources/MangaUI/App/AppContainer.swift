@@ -38,9 +38,15 @@ public enum AppSection: String, CaseIterable, Identifiable { case library, disco
     public var searching = false
     public var preparingChapters = Set<ChapterID>()
     public var preparingBatch = false
+    public var preparationFailure: String?
+    public var preparationWorkTitle: String?
+    public var preparationExisting = 0
+    public var preparationCancelled = false
+    public var preparationSkipped = 0
     public var preparationTotal = 0
     public var preparationFinished = 0
     public var preparationErrors: [ChapterID: String] = [:]
+    public var preparationChapterTitles: [ChapterID: String] = [:]
     @ObservationIgnored var batchTask: Task<Void, Never>?
     public var openingResults = Set<SourceWorkID>()
     @ObservationIgnored private var searchTask: Task<Void, Never>?

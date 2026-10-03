@@ -16,6 +16,11 @@ struct ChapterListView: View {
         ScrollView { LazyVStack(alignment: .leading, spacing: 14) {
             HStack { SourceBadge(name: app.sourceName(sourceWorkID.sourceID)); Spacer(); Text("\(chapters.count) 章").foregroundStyle(.secondary) }
             if let progress = app.history.first(where: { $0.sourceWorkID == sourceWorkID }) { Button("继续阅读：\(app.chapterTitle(progress.chapterID))") { Task { await app.resume(progress) } }.buttonStyle(.borderedProminent) }
+            Button {
+                app.startWholeDownload(sourceWorkID); app.section = .downloads
+            } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
+                .buttonStyle(.bordered).disabled(loading || work == nil || app.preparingBatch || !app.sourceList.contains { $0.id == sourceWorkID.sourceID && $0.enabled })
+                .accessibilityIdentifier("download-whole-work")
             HStack { TextField("筛选章节名称", text: $query).textFieldStyle(.roundedBorder); Toggle("最新在前", isOn: $newestFirst).toggleStyle(.button) }
             if selecting { HStack { Button("选择当前列表") { selection.formUnion(visible.filter { $0.access == .available }.map(\.id)) }; Button("清空") { selection.removeAll() }; Spacer(); Button("下载所选 \(selection.count) 章") { app.startBatch(chapters.filter { selection.contains($0.id) }); selecting = false; selection.removeAll() }.disabled(selection.isEmpty || app.preparingBatch) }.buttonStyle(.bordered) }
             if app.preparingBatch { HStack { ProgressView(); Text("加入下载队列：\(app.preparationFinished) / \(app.preparationTotal)"); Button("取消准备") { app.cancelPreparation() } }.font(.caption) }

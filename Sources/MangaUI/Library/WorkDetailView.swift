@@ -55,6 +55,11 @@ struct WorkDetailView: View {
                 if let progress { Button("继续阅读") { Task { await app.resume(progress) } }.buttonStyle(.bordered) }
                 Spacer(minLength: 0)
             }
+            Button {
+                app.startWholeDownload(source.id); app.section = .downloads
+            } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
+                .buttonStyle(.bordered).disabled(!online || app.preparingBatch)
+                .accessibilityIdentifier("download-whole-work")
             Toggle("关注这个来源的更新", isOn: Binding(get: { followed.contains(source.id) }, set: { value in Task { await app.perform { try await app.updates.setFollowed(value, sourceWorkID: source.id); if value { followed.insert(source.id) } else { followed.remove(source.id) } } } })).toggleStyle(.switch)
             if sources.count > 1 { Button("解除关联") { Task { await app.perform { try await app.associations.unlink(source.id, from: workID); try await app.refresh() }; await reload() } }.font(.caption) }
             if !online { Label("来源已停用或删除，已下载章节仍可离线阅读", systemImage: "wifi.slash").font(.caption).foregroundStyle(.secondary) }

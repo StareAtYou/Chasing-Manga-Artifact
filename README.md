@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.2 扩充为 9 个内置来源，保留 iOS 图标修复，并兼容升级前手动添加或删除的来源。固定使用 Xcode 16.4 / iOS 18.5 SDK 完成双端 Release 构建；新版 iOS 安装包已生成，设备当前断开连接，覆盖安装与手机正文验收仍待执行。历史安装记录见 [iOS 交付记录](docs/ios-delivery.md)，本轮范围见 [v0.2.2 验证](docs/source-expansion-0.2.2.md)。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.2.3 新增所选来源整部漫画一键下载，保留 9 个内置来源和 iOS 图标修复。固定使用 Xcode 16.4 / iOS 18.5 SDK 完成双端 Release 构建，已在 macOS 15.7.7 验证本地样本的整部下载与离线阅读，并在连接的 iOS 18.5 手机成功覆盖安装和启动；本轮未自动操作手机正文界面。功能与验证范围见 [整部下载](docs/whole-work-download.md)，历史来源验证见 [v0.2.2 验证](docs/source-expansion-0.2.2.md)。
 
 ## 功能
 
@@ -8,12 +8,13 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 - 自定义网址与作品样本：依次尝试内置解析器，验证目录和真实图片后绑定方法与版本；有限样本或歧义需要明确处理；样本须位于来源配置的网址与子路径范围内。
 - 多源搜索、手动关联/解除关联、用户选择阅读来源与跨源续读候选；仅阅读能力的来源可从已验证作品或详情网址进入。
 - 书架、历史、更新、离线下载；通知默认关闭。
+- 作品详情或章节页一键下载所选来源全部已发布可读章节，刷新完整目录，跳过已有任务和受限内容；单章解析失败继续处理，显示失败章节名称并支持再次点击补齐。
 - 纵向滚动、逐页、左右阅读方向、macOS 双页、缩放与页内进度。
 - 优先当前页、有限预加载、独立缓存/离线目录，过期资源重新取地址。
 
 ## macOS 直接使用
 
-解压 `ChasingManga-0.2.2-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+解压 `ChasingManga-0.2.3-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
 
 自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
 

@@ -5,9 +5,18 @@ struct DownloadsView: View {
     @State private var deleting: DownloadTask?
     var body: some View {
         VStack {
-            if app.preparingBatch { HStack { ProgressView(); Text("准备章节：\(app.preparationFinished) / \(app.preparationTotal)"); Button("取消准备") { app.cancelPreparation() } }.padding() }
+            if let title = app.preparationWorkTitle {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("整部下载 · \(title)").font(.headline)
+                    if app.preparingBatch && app.preparationTotal == 0 { Label("正在刷新完整目录…", systemImage: "arrow.clockwise") }
+                    else { Text("已处理 \(app.preparationFinished) / \(app.preparationTotal) 章 · 已有 \(app.preparationExisting) 章在队列或已下载 · 跳过 \(app.preparationSkipped) 章受限内容").font(.caption).foregroundStyle(.secondary) }
+                    if let failure = app.preparationFailure { Text("准备失败：\(failure)").font(.caption).foregroundStyle(.red) }
+                    if app.preparingBatch { HStack { ProgressView(); Button("取消准备") { app.cancelPreparation() } } }
+                    else if app.preparationFailure == nil { Text(app.preparationCancelled ? "准备已取消；已加入队列的章节会继续下载。再次点击整部下载可补齐。" : "目录处理已结束，实际下载进度见下方各章节。").font(.caption).foregroundStyle(.secondary) }
+                }.padding().frame(maxWidth: .infinity, alignment: .leading)
+            } else if app.preparingBatch { HStack { ProgressView(); Text("准备章节：\(app.preparationFinished) / \(app.preparationTotal)"); Button("取消准备") { app.cancelPreparation() } }.padding() }
             if !app.preparationErrors.isEmpty { DisclosureGroup("\(app.preparationErrors.count) 章未加入队列") { ForEach(Array(app.preparationErrors.keys).sorted { $0.key < $1.key }, id: \.self) { id in Text("\(app.chapterTitle(id))：\(app.preparationErrors[id] ?? "")").font(.caption) } }.padding() }
-            if app.downloadList.isEmpty { EmptyState(title: "还没有下载", icon: "arrow.down.circle", message: "在章节目录中下载，完成后可断网阅读。") }
+            if app.downloadList.isEmpty { EmptyState(title: "还没有下载", icon: "arrow.down.circle", message: "在作品详情或章节目录中点击“下载整部漫画”，完成后可断网阅读。") }
             else { ScrollView { LazyVStack(spacing: 16) { ForEach(app.downloadList) { task in VStack(alignment: .leading, spacing: 10) { Text(app.catalog.first { $0.id == task.chapter.id.sourceWorkID }?.title ?? "已保存的漫画").font(.headline); HStack { Text(task.chapter.title).font(.subheadline); Spacer(); SourceBadge(name: app.sourceName(task.chapter.id.sourceWorkID.sourceID)) }; Text(stateTitle(task.state)).font(.caption).foregroundStyle(.secondary); ProgressView(value: Double(task.completedPages), total: Double(max(1, task.pages.count))); Text("\(task.completedPages) / \(task.pages.count) 页 · \(ByteCountFormatter.string(fromByteCount: Int64(task.bytes), countStyle: .file))").font(.caption); if let error = task.error { Text(error.localizedDescription).font(.caption).foregroundStyle(.red) }; HStack {
                 if task.state == .completed { Button("离线阅读") { app.path.append(.reader(task.chapter.id)) } }
                 else if [.running, .queued].contains(task.state) { Button("暂停") { action { try await app.downloads.pause(taskID: task.id) } } }
