@@ -1,0 +1,83 @@
+{
+  "browseCount" : 48,
+  "chapterCount" : 343,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "org.webmproject.webp",
+        "height" : 844,
+        "width" : 1080
+      },
+      "lastImage" : {
+        "format" : "org.webmproject.webp",
+        "height" : 608,
+        "width" : 1080
+      },
+      "ordinal" : 0,
+      "pageCount" : 150
+    },
+    {
+      "firstImage" : {
+        "format" : "org.webmproject.webp",
+        "height" : 844,
+        "width" : 1080
+      },
+      "lastImage" : {
+        "format" : "org.webmproject.webp",
+        "height" : 591,
+        "width" : 1080
+      },
+      "ordinal" : 342,
+      "pageCount" : 136
+    }
+  ],
+  "date" : "2026-10-03T02:42:50Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "baozimh.org",
+      "status" : "200"
+    },
+    {
+      "host" : "baozimh.org",
+      "status" : "200"
+    },
+    {
+      "host" : "baozimh.org",
+      "status" : "200"
+    },
+    {
+      "host" : "baozimh.org",
+      "status" : "200"
+    },
+    {
+      "host" : "baozimh.org",
+      "status" : "200"
+    },
+    {
+      "host" : "v2.apikk.top",
+      "status" : "200"
+    },
+    {
+      "host" : "c-nd3-1.6wm.top",
+      "status" : "200"
+    },
+    {
+      "host" : "c-nd3-1.6wm.top",
+      "status" : "200"
+    },
+    {
+      "host" : "c-nd3-1.6wm.top",
+      "status" : "200"
+    },
+    {
+      "host" : "c-nd3-1.6wm.top",
+      "status" : "200"
+    }
+  ],
+  "searchCount" : 30,
+  "source" : "baozi"
+}

@@ -36,6 +36,8 @@ public struct ManhuazhanAdapter: SourceAdapter {
         guard html.contains("DATA=") || html.contains("DATA =") else { return try await base.pages(chapter: chapter, context: context) }
         guard let renderer = context.renderer else { throw MangaError.unsupported("该来源正文需要内置浏览器渲染") }
         let page = try await renderer.render(url: chapter.url, source: context.source, interactive: false)
+        guard SourceScope.contains(page.url, in: context.source.baseURL) else { throw MangaError.invalidURL }
+        try HTMLAccessGuard.check(SwiftSoup.parse(page.html))
         struct Item: Decodable { let url: String }
         guard let value = page.metadata["manhuazhan.pages"], let items = try? JSONDecoder().decode([Item].self, from: Data(value.utf8)), !items.isEmpty else { throw MangaError.parseMismatch("浏览器未取得正文列表") }
         return try items.enumerated().map { index, item in

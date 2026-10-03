@@ -1,0 +1,69 @@
+{
+  "browseCount" : 1,
+  "chapterCount" : 3305,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 311,
+        "width" : 577
+      },
+      "ordinal" : 0,
+      "pageCount" : 1
+    },
+    {
+      "firstImage" : {
+        "format" : "public.png",
+        "height" : 392,
+        "width" : 522
+      },
+      "ordinal" : 3304,
+      "pageCount" : 1
+    }
+  ],
+  "date" : "2026-10-03T02:33:59Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "imgs.xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "xkcd.com",
+      "status" : "200"
+    },
+    {
+      "host" : "imgs.xkcd.com",
+      "status" : "200"
+    }
+  ],
+  "searchCount" : 1,
+  "source" : "xkcd"
+}

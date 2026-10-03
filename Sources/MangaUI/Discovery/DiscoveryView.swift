@@ -9,6 +9,7 @@ struct DiscoveryView: View {
     @State private var limits: [SourceID: Int] = [:]
     @State private var showSources = false
     @State private var showWorkURL = false
+    @State private var visibleSource: Source?
     private var searchable: Set<SourceID> { Set(app.sourceList.filter { $0.enabled && $0.capabilities.contains(.search) }.map(\.id)) }
     var body: some View {
         ScrollView { LazyVStack(alignment: .leading, spacing: 24) {
@@ -46,11 +47,14 @@ struct DiscoveryView: View {
         }
         .sheet(isPresented: $showWorkURL) { OpenWorkURLSheet() }
         .sheet(isPresented: $showSources) { NavigationStack { SourceManagementView() } }
+        .sheet(item: $visibleSource) { SourceWebView(source: $0) }
         .onDisappear { app.cancelSearch() }
     }
     private func sourceCard(_ source: Source) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack { Toggle(source.name, isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { selectedSources.insert(source.id) } else { selectedSources.remove(source.id) }; search() })).disabled(!source.enabled || !source.capabilities.contains(.search)); Spacer(); if app.catalogLoading.contains(source.id) { ProgressView().controlSize(.small) } }
+            HStack { Text(source.name).font(.headline); Spacer(); if app.catalogLoading.contains(source.id) { ProgressView().controlSize(.small) } }
+            Toggle("参与跨源搜索", isOn: Binding(get: { selectedSources.contains(source.id) }, set: { if $0 { selectedSources.insert(source.id) } else { selectedSources.remove(source.id) }; search() })).font(.caption).disabled(!source.enabled || !source.capabilities.contains(.search))
+            if source.enabled, let count = app.browsingBySource[source.id]?.count, count > 0 { Text("可浏览 · \(count) 部作品").font(.caption).foregroundStyle(.secondary) }
             Text(source.baseURL.host ?? source.name).font(.caption).foregroundStyle(.secondary)
             if !source.enabled { Text("已停用").font(.caption).foregroundStyle(.secondary) }
             else if let errors = app.catalogErrors[source.id], !errors.isEmpty {
@@ -59,6 +63,7 @@ struct DiscoveryView: View {
             HStack {
                 Button("浏览") { query = ""; browseSource = source.id; if app.browsingBySource[source.id]?.isEmpty != false { Task { await app.inspectSource(source.id) } } }
                 Button("重新检查") { Task { await app.inspectSource(source.id) } }
+                Button("来源页面 / 验证") { visibleSource = source }
             }.buttonStyle(.bordered).disabled(!source.enabled || app.catalogLoading.contains(source.id))
         }.padding(14).frame(maxWidth: .infinity, alignment: .leading).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
     }

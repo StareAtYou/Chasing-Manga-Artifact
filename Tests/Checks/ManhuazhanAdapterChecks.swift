@@ -31,6 +31,20 @@ public let manhuazhanAdapterChecks: [Check] = [
         let pages = try await ManhuazhanAdapter().pages(chapter: chapter, context: ParserContext(source: source, client: client, renderer: renderer))
         try expect(pages.count == 3 && pages.last?.request.url.lastPathComponent == "3.jpg" && pages[0].request.accessContextID == id, "Complete browser-generated list and scoped access context")
     },
+    Check("ManhuazhanAdapterTests.renderedChallengeRequiresVerification") {
+        let source = BuiltinSources.candidates()[0]; let chapter = Samples.chapter(Samples.work(source))
+        let client = FixtureHTTPClient([chapter.url.absoluteString: textResponse("<script>var DATA='sample';</script>", chapter.url)])
+        let renderer = FixturePageRenderer(page: RenderedPage(url: chapter.url, html: "<title>安全验证 - 漫画站</title>"))
+        do { _ = try await ManhuazhanAdapter().pages(chapter: chapter, context: ParserContext(source: source, client: client, renderer: renderer)); throw CheckFailure(description: "Challenge presented as parsing failure") }
+        catch MangaError.verificationRequired { }
+    },
+    Check("ManhuazhanAdapterTests.renderedNavigationRemainsSourceScoped") {
+        let source = BuiltinSources.candidates()[0]; let chapter = Samples.chapter(Samples.work(source))
+        let client = FixtureHTTPClient([chapter.url.absoluteString: textResponse("<script>var DATA='sample';</script>", chapter.url)])
+        let renderer = FixturePageRenderer(page: RenderedPage(url: URL(string: "https://other.test/")!, html: "", metadata: ["manhuazhan.pages": "[{\"url\":\"https://images.test/1.jpg\"}]"]))
+        do { _ = try await ManhuazhanAdapter().pages(chapter: chapter, context: ParserContext(source: source, client: client, renderer: renderer)); throw CheckFailure(description: "Unrelated browser page accepted") }
+        catch MangaError.invalidURL { }
+    },
     Check("HTTPClientTests.crossOriginRedirectDropsPOSTBody") {
         var request = URLRequest(url: Samples.sourceB.baseURL); request.httpMethod = "POST"; request.httpBody = Data("password=secret".utf8)
         let safe = RedirectPolicy.sanitize(request, from: Samples.sourceA.baseURL)

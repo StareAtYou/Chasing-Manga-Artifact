@@ -27,8 +27,9 @@ import MangaCore
         cancel()
         let token = UUID(); self.token = token
         navigation = webView.load(URLRequest(url: url))
+        let duration = interactive ? 60 : (source.baseURL.host == "baozimh.org" ? 30 : 12)
         timeout = Task { @MainActor [weak self] in
-            do { try await Task.sleep(for: .seconds(interactive ? 60 : 12)) } catch { return }
+            do { try await Task.sleep(for: .seconds(duration)) } catch { return }
             self?.lifecycle.finish(token: token, result: .failure(MangaError.timedOut))
         }
         do {
@@ -39,17 +40,29 @@ import MangaCore
     public func snapshot() async throws -> RenderedPage {
         guard let url = webView.url, WebAccessPolicy.permits(url, source: source) else { throw MangaError.invalidURL }
         var metadata: [String: String] = [:]
-        if source.baseURL.host == "www.manhuazhan.com" {
+        if source.baseURL.host == "www.manhuazhan.com", url.path.hasPrefix("/chapter/") {
             for _ in 0..<30 {
                 try Task.checkCancellation()
                 if let value = try await webView.evaluateJavaScript("typeof newImgs !== 'undefined' && Array.isArray(newImgs) ? JSON.stringify(newImgs) : null") as? String, value != "[]" { metadata["manhuazhan.pages"] = value; break }
                 try await Task.sleep(for: .milliseconds(200))
             }
         }
+        if source.baseURL.host == "baozimh.org", url.pathComponents.count >= 4, url.path.hasPrefix("/manga/") {
+            // Wait for the site's own asynchronous reader and decoder. data-src
+            // includes the full lazy list, so scrolling is unnecessary.
+            for _ in 0..<100 {
+                try Task.checkCancellation()
+                let count = try await webView.evaluateJavaScript("document.querySelectorAll('#chapcontent img[data-src]').length") as? Int ?? 0
+                if count > 0 { break }
+                try await Task.sleep(for: .milliseconds(200))
+            }
+        }
         let html = try await webView.evaluateJavaScript("document.documentElement.outerHTML") as? String ?? ""
         let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
         let scoped = cookies.map { cookie in ScopedCookie(name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path, secure: cookie.isSecure, expires: cookie.expiresDate, hostOnly: !cookie.domain.hasPrefix(".")) }
-        let context = try await contexts.register(sourceID: source.id, originURL: url, cookies: scoped)
+        let userAgent = try await webView.evaluateJavaScript("navigator.userAgent") as? String
+        let headers = userAgent.map { ["User-Agent": $0] } ?? [:]
+        let context = try await contexts.register(sourceID: source.id, originURL: url, headers: headers, cookies: scoped)
         return RenderedPage(url: url, html: html, accessContextID: context, metadata: metadata)
     }
     public func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {

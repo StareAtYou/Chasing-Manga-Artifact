@@ -69,7 +69,7 @@ struct SourceWebView: View {
     let source: Source
     @Environment(AppContainer.self) private var app
     @Environment(\.dismiss) private var dismiss
-    var body: some View { NavigationStack { NativeSourceWebView(webView: app.web.session(for: source).webView).navigationTitle(source.name).toolbar { Button("刷新访问状态") { Task { await app.perform { _ = try await app.web.session(for: source).snapshot(); app.message = "访问状态已更新，可以重新检测或重试。" } } }; Button("完成") { dismiss() } }.task { await app.perform { try app.web.session(for: source).open(source.baseURL) } } }.frame(minWidth: 320, minHeight: 500) }
+    var body: some View { NavigationStack { NativeSourceWebView(webView: app.web.session(for: source).webView).navigationTitle(source.name).toolbar { Button("保存访问状态并重试") { Task { await app.perform { _ = try await app.web.session(for: source).snapshot(); await app.inspectSource(source.id); app.message = "访问状态已更新；若仍提示验证，请在来源页面完成验证后重试。" } } }; Button("完成") { dismiss() } }.task { await app.perform { try app.web.session(for: source).open(source.baseURL) } } }.frame(minWidth: 320, minHeight: 500) }
 }
 #if os(macOS)
 struct NativeSourceWebView: NSViewRepresentable { let webView: WKWebView; func makeNSView(context: Context) -> WKWebView { webView }; func updateNSView(_ nsView: WKWebView, context: Context) { } }

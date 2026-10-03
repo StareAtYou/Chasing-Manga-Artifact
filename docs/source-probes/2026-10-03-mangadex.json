@@ -1,0 +1,107 @@
+{
+  "browseCount" : 40,
+  "chapterCount" : 593,
+  "chapters" : [
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 2560,
+        "width" : 1830
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 1260,
+        "width" : 900
+      },
+      "ordinal" : 0,
+      "pageCount" : 5
+    },
+    {
+      "firstImage" : {
+        "format" : "public.jpeg",
+        "height" : 1784,
+        "width" : 800
+      },
+      "lastImage" : {
+        "format" : "public.jpeg",
+        "height" : 800,
+        "width" : 800
+      },
+      "ordinal" : 592,
+      "pageCount" : 5
+    }
+  ],
+  "date" : "2026-10-03T02:35:32Z",
+  "detail" : "parsed",
+  "homepageStatus" : 200,
+  "platform" : "Version 15.7.7 (Build 24G720)",
+  "readingVerified" : true,
+  "requests" : [
+    {
+      "host" : "mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "cmdxd98sb0x3yprd.mangadex.network",
+      "status" : "200"
+    },
+    {
+      "host" : "cmdxd98sb0x3yprd.mangadex.network",
+      "status" : "200"
+    },
+    {
+      "host" : "api.mangadex.org",
+      "status" : "200"
+    },
+    {
+      "host" : "cmdxd98sb0x3yprd.mangadex.network",
+      "status" : "200"
+    },
+    {
+      "host" : "cmdxd98sb0x3yprd.mangadex.network",
+      "status" : "200"
+    }
+  ],
+  "searchCount" : 1,
+  "source" : "mangadex"
+}

@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 root=$(pwd)
 output="$root/release/ios"
 products="$root/.build/ios-package"
+swift scripts/check-ios-icons.swift Apps/iOS/Icons
 mkdir -p "$output"
 # Target builds also work when the device SDK is installed but a simulator runtime is unavailable.
 xcodebuild -project ChasingManga.xcodeproj -target MangaIOS -configuration Release \

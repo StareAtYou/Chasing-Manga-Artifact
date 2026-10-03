@@ -30,3 +30,6 @@ SOFTWARE.
 SQLite3 使用 Apple SDK 系统库；SQLite 本身为公有领域（https://www.sqlite.org/copyright.html）。未嵌入独立 SQLite 二进制。Apple 系统框架受各自 SDK 许可约束。
 
 XcodeGen 2.46.0 是可选工程生成工具，MIT（https://github.com/yonaskolb/XcodeGen/blob/2.46.0/LICENSE）；不随应用分发。未使用 GRDB。网站内容、商标、漫画图片不受本项目 MIT 许可授权。
+
+
+新增来源通过正常公开页面或接口访问，不随应用分发漫画图片。MangaDex 与各章节汉化组在应用中署名；本项目使用该 API 时不加入广告或出售内容，并尊重内容移除请求，见 [官方政策](https://gitlab.com/mangadex-pub/mangadex-api-docs/-/blob/main/index.md)。xkcd 作者为 Randall Munroe，数据接口见 [作者说明](https://xkcd.com/json.html)。包子漫画 org 的公开网页、目录与正文属于原站内容；本项目代码许可不覆盖这些内容。
