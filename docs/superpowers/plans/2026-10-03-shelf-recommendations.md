@@ -56,8 +56,8 @@
 - [x] Remove source-management cards from Discovery, preserve source search filtering and management/link entry points.
 - [x] Build responsive large feature cards, source-labelled popular rails, real genre/source columns and paginated channel pages; no fake global rank.
 - [x] Check local native fixture navigation, recommendation/category/page selection, download auto-shelf/removal/offline reading via UI.
-- [ ] Run regression suite, Mac universal and iOS18.5 Release builds; fresh whole-branch review and one verified fix pass for material findings.
-- [ ] Sanitize staged project/signing identifiers; scan public files and commit range, push authorized remote, sync primary checkout, deliver versioned source/Mac/IPA archives and install/launch on original device if available.
+- [x] Run regression suite, Mac universal and iOS18.5 Release builds; fresh whole-branch review and one verified fix pass for material findings.
+- [x] Sanitize staged project/signing identifiers; scan public files and commit range, push authorized remote, sync primary checkout, deliver versioned source/Mac/IPA archives and install/launch on original device if available.
 
 ## Execution Notes
 
