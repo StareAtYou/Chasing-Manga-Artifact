@@ -1,6 +1,6 @@
 import Foundation
 public enum MangaError: Error, Codable, Equatable, Sendable, LocalizedError {
-    case invalidURL, networkUnavailable, timedOut, requiresLogin, verificationRequired, chapterUnavailable, regionRestricted
+    case invalidURL, networkUnavailable, timedOut, requiresLogin, verificationRequired, chapterUnavailable, workUnavailable, regionRestricted
     case accessRestricted(Int), parseMismatch(String), unsupported(String), expiredResource, invalidImage, diskFull, storage(String)
     public var errorDescription: String? {
         switch self {
@@ -11,6 +11,7 @@ public enum MangaError: Error, Codable, Equatable, Sendable, LocalizedError {
         case .verificationRequired: "请打开来源页面完成验证"
         case .regionRestricted: "作品有版权地区限制，请在来源允许的地区阅读"
         case .chapterUnavailable: "该章节暂时不可访问"
+        case .workUnavailable: "原站已下架这部漫画的章节，请选择其他漫画来源"
         case .accessRestricted(let status): "来源限制访问（HTTP \(status)）"
         case .parseMismatch(let message): "解析方式不匹配：\(message)"
         case .unsupported(let message): "尚未支持：\(message)"

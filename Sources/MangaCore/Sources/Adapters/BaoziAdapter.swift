@@ -6,6 +6,12 @@ public struct BaoziAdapter: SourceAdapter {
     public let version = 1
     public let capabilities: SourceCapabilities = [.browse, .search, .readable]
     public init() { }
+    private func checkAvailability(_ doc: Document) throws {
+        // Removed works remain in the site's listings, but have no chapter
+        // container. This is a work-level availability change, not a broken source.
+        let badges = try doc.select("h1 span").array().map { try $0.text().trimmingCharacters(in: .whitespacesAndNewlines) }
+        if badges.contains(where: { ["章節下架", "章节下架", "章節已下架", "章节已下架"].contains($0) }) { throw MangaError.workUnavailable }
+    }
     private func document(_ url: URL, context: ParserContext) async throws -> Document {
         guard context.source.baseURL.host == "baozimh.org" else { throw MangaError.invalidURL }
         let doc = try SwiftSoup.parse(await context.text(url), url.absoluteString)
@@ -45,6 +51,7 @@ public struct BaoziAdapter: SourceAdapter {
     public func details(url: URL, context: ParserContext) async throws -> SourceWork {
         guard url.path.range(of: #"^/manga/[^/]+/?$"#, options: .regularExpression) != nil else { throw MangaError.invalidURL }
         let doc = try await document(url, context: context)
+        try checkAvailability(doc)
         let title = try doc.select("h1").first()?.ownText().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !title.isEmpty, try doc.select("#mangachapters[data-mid]").first() != nil else { throw MangaError.parseMismatch("包子漫画详情结构不匹配") }
         let cover = try doc.select("meta[property='og:image']").first()?.attr("content") ?? ""
@@ -55,10 +62,11 @@ public struct BaoziAdapter: SourceAdapter {
     private struct Envelope: Decodable { let status: Bool; let data: Manga }
     private struct Manga: Decodable { let id: String; let slug: String; let chapters: [Item] }
     private struct Item: Decodable { let id: String; let attributes: Attributes }
-    private struct Attributes: Decodable { let title: String; let slug: String; let order: Int }
+    private struct Attributes: Decodable { let title: String; let slug: String; let order: Double }
     public func chapters(work: SourceWork, context: ParserContext) async throws -> [Chapter] {
         guard work.id.sourceID == context.source.id else { throw MangaError.invalidURL }
         let doc = try await document(work.url, context: context)
+        try checkAvailability(doc)
         guard let mid = try doc.select("#mangachapters[data-mid]").first()?.attr("data-mid"), Int(mid) != nil else { throw MangaError.parseMismatch("包子漫画缺少目录标识") }
         var components = URLComponents(string: "https://v2.apikk.top/api/manga/get")!
         components.queryItems = [URLQueryItem(name: "mid", value: mid), URLQueryItem(name: "mode", value: "all")]
@@ -80,6 +88,7 @@ public struct BaoziAdapter: SourceAdapter {
         let page = try await renderer.render(url: chapter.url, source: context.source, interactive: false)
         guard SourceScope.contains(page.url, in: context.source.baseURL) else { throw MangaError.invalidURL }
         let doc = try SwiftSoup.parse(page.html);try HTMLAccessGuard.check(doc)
+        try checkAvailability(doc)
         let images = try doc.select("#chapcontent img[data-src]").array()
         guard !images.isEmpty else { throw MangaError.parseMismatch("包子漫画未返回正文，原站可能需要验证或暂时无法访问") }
         return try images.enumerated().map { index, image in
