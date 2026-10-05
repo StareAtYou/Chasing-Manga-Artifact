@@ -2,6 +2,30 @@
 
 Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.2 修复包子漫画含小数排序的章节目录，并正确提示原站已下架作品；支持规范分类与分类区默认折叠，包含原生推荐、真实分类专栏和分页浏览，并将下载管理合并到书架。保留 9 个内置来源、自定义解析器绑定、跨源搜索、关联来源、整部下载与离线阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。功能和验证范围见 [v0.3.2 修复记录](docs/baozi-fix-0.3.2.md)。
 
+## 界面展示
+
+以下为 v0.3.2 的真实原生界面，使用独立的本地演示数据、虚构漫画源与原创插画，不包含个人书架、账号或设备标识。点击图片可查看大图；演示推荐与排行不代表线上来源的实际热门数据。详见 [截图说明](docs/showcase/README.md)。
+
+### macOS
+
+在 macOS 15.7.7 上采集，展示深色界面与桌面双页阅读。
+
+| 书架与离线筛选 | 推荐与分类浏览 |
+| :---: | :---: |
+| [![macOS 书架：漫画封面与离线筛选](docs/showcase/macos-library.jpg)](docs/showcase/macos-library.jpg) | [![macOS 推荐：精选作品、分类与人气排行](docs/showcase/macos-recommendations.jpg)](docs/showcase/macos-recommendations.jpg) |
+| **关联来源与整部下载** | **双页阅读** |
+| [![macOS 作品详情：选择关联来源与整部下载](docs/showcase/macos-work.jpg)](docs/showcase/macos-work.jpg) | [![macOS 阅读器：原创演示漫画的双页阅读](docs/showcase/macos-reader.jpg)](docs/showcase/macos-reader.jpg) |
+
+### iOS
+
+在 iOS 18.5 真机上采集，展示浅色界面与逐页阅读。
+
+| 书架 | 推荐 |
+| :---: | :---: |
+| <a href="docs/showcase/ios-library.png"><img src="docs/showcase/ios-library.png" width="280" alt="iOS 书架：漫画封面与筛选"></a> | <a href="docs/showcase/ios-recommendations.png"><img src="docs/showcase/ios-recommendations.png" width="280" alt="iOS 推荐：精选作品与默认收起的分类区"></a> |
+| **作品与来源** | **逐页阅读** |
+| <a href="docs/showcase/ios-work.png"><img src="docs/showcase/ios-work.png" width="280" alt="iOS 作品详情：手动选择漫画来源"></a> | <a href="docs/showcase/ios-reader.png"><img src="docs/showcase/ios-reader.png" width="280" alt="iOS 阅读器：原创演示漫画与翻页控制"></a> |
+
 ## 功能
 
 - 内置漫画站、瓜子漫画、DM5、MangaDex、包子漫画 org、MangaBZ、ComicFury、Dinosaur Comics、xkcd 的独立适配器；访问限制与解析失败分别提示。MangaDex 显示章节语言及汉化组，xkcd 与 Dinosaur Comics 为英文原创系列，ComicFury 为英文原创漫画平台。
