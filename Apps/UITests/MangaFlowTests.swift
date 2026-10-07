@@ -29,6 +29,38 @@ final class MangaFlowTests: XCTestCase {
         #endif
         let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.lifetime = .keepAlways; add(screenshot)
     }
+    @MainActor func testContinuousChapterScroll() throws {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
+        let work = app.buttons["打开 原创样本"].firstMatch; XCTAssertTrue(work.waitForExistence(timeout: 15)); activate(work)
+        let source = app.buttons["选择此来源"].firstMatch; XCTAssertTrue(source.waitForExistence(timeout: 10)); activate(source)
+        let chapter = app.buttons["chapter-1"]; XCTAssertTrue(chapter.waitForExistence(timeout: 10)); activate(chapter)
+        waitUntilReady(app)
+        let scroll = app.scrollViews["reader-scroll"]; XCTAssertTrue(scroll.waitForExistence(timeout: 10))
+        // Opening the second chapter must retain its first page despite prepending chapter one.
+        XCTAssertTrue(readerTitle("第2话", app: app).waitForExistence(timeout: 5))
+        scrollReader(scroll, up: true)
+        XCTAssertTrue(readerTitle("第1话", app: app).waitForExistence(timeout: 10))
+        for _ in 0..<6 {
+            if readerTitle("第2话", app: app).exists { break }
+            scrollReader(scroll, up: false)
+        }
+        XCTAssertTrue(readerTitle("第2话", app: app).waitForExistence(timeout: 5))
+        waitUntilReady(app)
+    }
+    @MainActor private func readerTitle(_ title: String, app: XCUIApplication) -> XCUIElement {
+        #if os(macOS)
+        return app.windows[title]
+        #else
+        return app.navigationBars[title]
+        #endif
+    }
+    @MainActor private func scrollReader(_ scroll: XCUIElement, up: Bool) {
+        #if os(macOS)
+        scroll.scroll(byDeltaX: 0, deltaY: up ? -600 : 600)
+        #else
+        if up { scroll.swipeDown() } else { scroll.swipeUp() }
+        #endif
+    }
     @MainActor func testRecommendationsPaginationAndShelfDownloadSheet() throws {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
         #if os(macOS)

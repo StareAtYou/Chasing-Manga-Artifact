@@ -99,6 +99,100 @@ public let reviewRegressionChecks: [Check] = [
 ]
 #if DEBUG
 public let readerUIRegressionChecks: [Check] = [
+    Check("ReviewRegressionTests.continuousReaderFailureBelongsToItsChapter") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root); let work = try await app.store.allSourceWorks()[0]
+        let base = work.url.deletingLastPathComponent().deletingLastPathComponent()
+        let chapters = (0..<5).map { Chapter(id: ChapterID(sourceWorkID: work.id, externalID: String($0)), title: "第\($0)话", url: base.appendingPathComponent($0 == 4 ? "broken" : "chapter/\($0)"), ordinal: $0) }
+        try await app.store.save(sourceWork: work, chapters: chapters)
+        let model = await ReaderModel(app: app, chapterID: chapters[1].id); await model.load()
+        for _ in 0..<2 {
+            await MainActor.run { model.restoring = false }; await model.loadAdjacent(1)
+            let lastPage = await model.scrollChapters.last!.pages[0].id
+            await model.position(lastPage, fraction: 0, mode: .scroll)
+        }
+        await model.loadAdjacent(1)
+        try expect(await model.adjacentErrors[1] != nil, "Unreadable adjacent chapter exposes retry without erasing current pages")
+        let oldFirst = await model.scrollChapters.first!.pages[0].id
+        await model.position(oldFirst, fraction: 0, mode: .scroll); await model.loadAdjacent(-1)
+        await MainActor.run { model.restoring = false }
+        let newLast = await model.scrollChapters.last!.pages[0].id
+        await model.position(newLast, fraction: 0, mode: .scroll); await model.loadAdjacent(1)
+        try expect(await model.scrollChapters.last?.chapter.id == chapters[3].id, "A failure in chapter four cannot block reloading readable chapter three")
+        await model.close(); await app.updateScheduler.stop()
+    },
+    Check("ReviewRegressionTests.continuousReaderKeepsUnreadUntilVisible") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let sourceWork = try await app.store.allSourceWorks()[0]; let chapters = try await app.store.chapters(for: sourceWork.id)
+        try await app.store.saveRecord(kind: "update-observation", key: sourceWork.id.key, value: UpdateObservation(sourceWorkID: sourceWork.id, baseline: Set(chapters.map(\.id)), newChapters: chapters))
+        let model = await ReaderModel(app: app, chapterID: chapters[0].id); await model.load()
+        await MainActor.run { model.restoring = false }; await model.loadAdjacent(1)
+        let before = try await app.updates.observations()[0]
+        try expect(before.newChapters.contains { $0.id == chapters[1].id }, "Preloaded chapter remains unread")
+        let page = await model.scrollChapters.last!.pages[0].id
+        await model.position(page, fraction: 0, mode: .scroll); await model.close()
+        let after = try await app.updates.observations()[0]
+        try expect(!after.newChapters.contains { $0.id == chapters[1].id }, "Entering the next chapter marks only that visible chapter read")
+        await app.updateScheduler.stop()
+    },
+    Check("ReviewRegressionTests.continuousReaderBoundsWindowAcrossManyChapters") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let work = try await app.store.allSourceWorks()[0]
+        let chapters = (0..<7).map { Chapter(id: ChapterID(sourceWorkID: work.id, externalID: String($0)), title: "第\($0 + 1)话", url: work.url.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("chapter/\($0)"), ordinal: $0) }
+        try await app.store.save(sourceWork: work, chapters: chapters)
+        let model = await ReaderModel(app: app, chapterID: chapters[0].id); await model.load()
+        for chapter in chapters.dropFirst() {
+            await MainActor.run { model.restoring = false }; await model.loadAdjacent(1)
+            let loaded = await model.scrollChapters
+            try expect(loaded.count <= 3 && loaded.last?.chapter.id == chapter.id, "Continuous reading keeps a bounded, ordered chapter window")
+            await MainActor.run { model.restoring = false }
+            await model.position(loaded.last!.pages[0].id, fraction: 0.15, mode: .scroll)
+        }
+        await model.close()
+        try expect(try await app.store.progress(for: work.id)?.chapterID == chapters[6].id, "Evicting distant chapters cannot overwrite visible progress")
+        await app.updateScheduler.stop()
+    },
+    Check("ReviewRegressionTests.continuousReaderAppendsWithoutNavigationOrReadMark") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let sourceWork = try await app.store.allSourceWorks()[0]; let chapters = try await app.store.chapters(for: sourceWork.id)
+        let model = await ReaderModel(app: app, chapterID: chapters[0].id); await model.load()
+        await MainActor.run { model.restoring = false }
+        await model.loadAdjacent(1)
+        try expect(await model.scrollChapters.map(\.chapter.id) == chapters.map(\.id), "Next chapter joins the same scroll content")
+        let before = await model.state
+        try expect(await app.path.isEmpty && before?.chapter.id == chapters[0].id, "Preloading doesn't navigate or change the current title")
+        let page = await model.scrollChapters.last!.pages[1].id
+        await model.position(page, fraction: 0.45, mode: .scroll)
+        let active = await model.state
+        try expect(await model.chapterID == chapters[1].id && active?.chapter.title == "第2话", "Menu follows visible chapter")
+        await model.mode(.paged)
+        let paged = await model.state
+        try expect(paged?.pages[1].id == page && paged?.progress.pageID == page, "Mode switch retains the visible chapter and page")
+        await model.close()
+        try expect(try await app.store.progress(for: sourceWork.id)?.chapterID == chapters[1].id, "Immediate exit preserves cross-chapter progress")
+        await app.updateScheduler.stop()
+    },
+    Check("ReviewRegressionTests.continuousReaderPrependsAndStopsAtDirectoryEdges") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let sourceWork = try await app.store.allSourceWorks()[0]; let chapters = try await app.store.chapters(for: sourceWork.id)
+        let model = await ReaderModel(app: app, chapterID: chapters[1].id); await model.load()
+        await MainActor.run { model.restoring = false }
+        let initialPage = await model.state!.pages[0].id
+        await model.loadAdjacent(-1)
+        let anchor = await model.scrollRequest
+        try expect(await model.scrollChapters.first?.chapter.id == chapters[0].id && anchor?.pageID == initialPage, "Prepending keeps the original visible page as the scroll anchor")
+        await MainActor.run { model.restoring = false }
+        let previousPage = await model.scrollChapters.first!.pages.last!.id
+        await model.position(previousPage, fraction: 0.8, mode: .scroll)
+        try expect(await model.chapterID == chapters[0].id, "Previous chapter last page activates previous title")
+        await model.loadAdjacent(-1); await model.loadAdjacent(1)
+        try expect(await model.scrollChapters.count == 2, "Directory edges do not reload or duplicate chapters")
+        await model.close(); await app.updateScheduler.stop()
+    },
     Check("ReviewRegressionTests.sameReaderModeKeepsPositionEnabled") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let app = try await UITestBootstrap.make(root: root); let work = try await app.store.allSourceWorks()[0]; let chapter = try await app.store.chapters(for: work.id)[0]
