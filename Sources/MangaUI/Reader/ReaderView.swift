@@ -30,7 +30,7 @@ struct ComicPageView: View {
     let model: ReaderModel
     let page: PageResource
     let width: CGFloat
-    var restoredFraction: Double = 0
+    var sizeResolved: (Double) -> Void = { _ in }
     var ready: () -> Void = { }
     @State private var tiles: [ImageTile] = []
     @State private var aspect: Double = 1.4
@@ -44,14 +44,13 @@ struct ComicPageView: View {
         }
         .accessibilityIdentifier("comic-page-\(page.ordinal)")
         .accessibilityLabel("第 \(page.ordinal + 1) 页漫画")
-        .overlay(alignment: .top) { Color.clear.frame(height: 1).offset(y: width * aspect * restoredFraction).id("restore-" + page.id.key) }
         .task(id: retry) {
             do {
                 let file: URL
                 if let offline = model.offlineFile(for: page.id) { file = offline } else { file = try await model.app.images.file(for: page, sourceID: page.id.chapterID.sourceWorkID.sourceID) }
                 let metadata = try await Task.detached { try ImageVerifier().verify(Data(contentsOf: file)) }.value
                 let decoded = try await model.app.images.tiles(file: file, pageID: page.id, viewport: PixelRect(x: 0, y: 0, width: metadata.width, height: metadata.height), targetWidth: min(2048, max(1, Int(width * 2))))
-                try Task.checkCancellation(); aspect = Double(metadata.height) / Double(metadata.width); tiles = decoded; failure = nil
+                try Task.checkCancellation(); aspect = Double(metadata.height) / Double(metadata.width); sizeResolved(aspect); tiles = decoded; failure = nil
                 await model.session.recordFailure(pageID: page.id, error: nil); model.pageReady(page.id); ready()
             } catch is CancellationError { } catch { failure = error.localizedDescription; await model.session.recordFailure(pageID: page.id, error: (error as? MangaError) ?? .invalidImage); model.pageReady(page.id); ready() }
         }

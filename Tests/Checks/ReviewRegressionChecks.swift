@@ -99,6 +99,68 @@ public let reviewRegressionChecks: [Check] = [
 ]
 #if DEBUG
 public let readerUIRegressionChecks: [Check] = [
+    Check("ReviewRegressionTests.shortChapterWindowNeverEvictsVisibleContent") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let work = try await app.store.allSourceWorks()[0]
+        let chapters = (0..<6).map { Chapter(id: ChapterID(sourceWorkID: work.id, externalID: String($0)), title: "第\($0)话", url: work.url.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("chapter/\($0)"), ordinal: $0) }
+        try await app.store.save(sourceWork: work, chapters: chapters)
+        let model = await ReaderModel(app: app, chapterID: chapters[0].id); await model.load()
+        await MainActor.run { model.restoring = false }
+        for _ in 0..<2 { await model.loadAdjacent(1); let page = await model.scrollChapters.last!.pages[0].id; await model.position(page, fraction: 0, mode: .scroll) }
+        await MainActor.run { model.visibleChapterIDs = Set(chapters.prefix(3).map(\.id)) }
+        await model.loadAdjacent(1)
+        try expect(await model.scrollChapters.first?.chapter.id == chapters[0].id, "A chapter still visible at the top cannot be removed when another short chapter is appended")
+        let page = await model.scrollChapters.last!.pages[0].id
+        await model.position(page, fraction: 0, mode: .scroll)
+        await MainActor.run { model.visibleChapterIDs = [chapters[3].id] }
+        await model.trimOffscreenChapters()
+        let trimmed = await MainActor.run { model.scrollChapters.count == 3 && model.scrollChapters.first?.chapter.id == chapters[1].id }
+        try expect(trimmed, "Once old chapters leave the viewport, their images and metadata are evicted")
+        await model.close(); await app.updateScheduler.stop()
+    },
+    Check("ReviewRegressionTests.nativeScrollDoesNotTurnBounceIntoPadding") {
+        try await MainActor.run {
+            let tracker = ReadingScrollCoordinator()
+            let old = ReadingScrollLayout(rows: [.init(id: "a", height: 1000), .init(id: "b", height: 1000)])
+            _ = tracker.offset(for: old, current: 0, destination: nil)
+            _ = tracker.contentHeight(viewportHeight: 800, offset: 0)
+            let next = ReadingScrollLayout(rows: [.init(id: "a", height: 900), .init(id: "b", height: 1000)])
+            let offset = tracker.offset(for: next, current: 1250, destination: nil)
+            try expect(tracker.contentHeight(viewportHeight: 800, offset: offset) == 1900, "Fifty points of native elastic overscroll must spring back rather than becoming permanent blank trailing space")
+        }
+    },
+    Check("ReviewRegressionTests.nativeScrollHasRoomForShortChapterAnchor") {
+        try await MainActor.run {
+            let tracker = ReadingScrollCoordinator()
+            let old = ReadingScrollLayout(rows: [.init(id: "a", height: 100)])
+            _ = tracker.offset(for: old, current: 0, destination: nil)
+            let next = ReadingScrollLayout(rows: [.init(id: "previous", height: 200), .init(id: "a", height: 100)])
+            let offset = tracker.offset(for: next, current: 0, destination: nil)
+            let extent = tracker.contentHeight(viewportHeight: 800, offset: offset)
+            try expect(offset == 200 && extent >= 1000, "Short content must have enough native scroll extent to retain the current page instead of clamping the compensated offset to zero")
+        }
+    },
+    Check("ReviewRegressionTests.adjacentChangesNeverRestartScrollRestoration") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let app = try await UITestBootstrap.make(root: root)
+        let work = try await app.store.allSourceWorks()[0]
+        let chapters = (0..<5).map { Chapter(id: ChapterID(sourceWorkID: work.id, externalID: String($0)), title: "第\($0)话", url: work.url.deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("chapter/\($0)"), ordinal: $0) }
+        try await app.store.save(sourceWork: work, chapters: chapters)
+        let model = await ReaderModel(app: app, chapterID: chapters[2].id); await model.load()
+        let page = await model.state!.pages[1].id
+        await MainActor.run { model.requestScroll(pageID: page, fraction: 0.45); model.restoring = false }
+        let token = await model.scrollRequest?.token
+        await model.loadAdjacent(-1)
+        let preserved = await MainActor.run { !model.restoring && model.scrollRequest?.token == token }
+        try expect(preserved, "Prepending must not force a page-top jump or pause reading")
+        await model.loadAdjacent(1)
+        let last = await model.scrollChapters.last!.pages[0].id
+        await model.position(last, fraction: 0.3, mode: .scroll); await model.loadAdjacent(1)
+        let trimmed = await MainActor.run { !model.restoring && model.scrollRequest?.token == token }
+        try expect(trimmed, "Evicting content above the viewport must not start delayed restoration")
+        await model.close(); await app.updateScheduler.stop()
+    },
     Check("ReviewRegressionTests.continuousReaderFailureBelongsToItsChapter") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let app = try await UITestBootstrap.make(root: root); let work = try await app.store.allSourceWorks()[0]
@@ -183,8 +245,8 @@ public let readerUIRegressionChecks: [Check] = [
         await MainActor.run { model.restoring = false }
         let initialPage = await model.state!.pages[0].id
         await model.loadAdjacent(-1)
-        let anchor = await model.scrollRequest
-        try expect(await model.scrollChapters.first?.chapter.id == chapters[0].id && anchor?.pageID == initialPage, "Prepending keeps the original visible page as the scroll anchor")
+        let preservedPage = await model.state?.progress.pageID
+        try expect(await model.scrollChapters.first?.chapter.id == chapters[0].id && preservedPage == initialPage, "Prepending keeps the original visible page without navigating")
         await MainActor.run { model.restoring = false }
         let previousPage = await model.scrollChapters.first!.pages.last!.id
         await model.position(previousPage, fraction: 0.8, mode: .scroll)

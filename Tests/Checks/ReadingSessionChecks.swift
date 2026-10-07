@@ -11,6 +11,30 @@ func readingFixture() async throws -> (ReadingSession, LibraryStore, Chapter, UR
     return (ReadingSession(store: store, sources: sources), store, chapter, directory)
 }
 public let readingSessionChecks: [Check] = [
+    Check("ReadingSessionTests.materializesVisibleImagesBeforeNativeOffsetCorrection") {
+        let old = ReadingScrollLayout(rows: [.init(id: "a", height: 1000), .init(id: "b", height: 1000), .init(id: "c", height: 1000)])
+        let prepend = ReadingScrollLayout(rows: [.init(id: "previous", height: 2000), .init(id: "a", height: 1000), .init(id: "b", height: 1000), .init(id: "c", height: 1000)])
+        try expect(prepend.materializedRows(from: old, offset: 1100, viewportHeight: 400, margin: 0) == ["b"], "Visible image stays mounted in the first prepend layout pass, before the scroll callback")
+        let trim = ReadingScrollLayout(rows: [.init(id: "b", height: 1000), .init(id: "c", height: 1000)])
+        try expect(trim.materializedRows(from: old, offset: 2200, viewportHeight: 400, margin: 0) == ["c"], "Trimming cannot replace the retained visible image with a blank placeholder")
+    },
+    Check("ReadingSessionTests.scrollLayoutPreservesPixelsThroughChapterChanges") {
+        let old = ReadingScrollLayout(rows: [.init(id: "top", height: 64, anchors: false), .init(id: "a", height: 900), .init(id: "b", height: 800), .init(id: "bottom", height: 64, anchors: false)])
+        let prepend = ReadingScrollLayout(rows: [.init(id: "top", height: 64, anchors: false), .init(id: "previous", height: 1200), .init(id: "a", height: 900), .init(id: "b", height: 800), .init(id: "bottom", height: 64, anchors: false)])
+        try expect(prepend.preservingOffset(from: old, offset: 400) == 1600, "Prepending keeps the same pixel within the current page")
+        try expect(prepend.preservingOffset(from: old, offset: 0) == 1200, "A visible top boundary must not anchor to the new first chapter")
+        let trim = ReadingScrollLayout(rows: [.init(id: "top", height: 64, anchors: false), .init(id: "b", height: 800), .init(id: "c", height: 600), .init(id: "bottom", height: 64, anchors: false)])
+        try expect(trim.preservingOffset(from: old, offset: 1100) == 200, "Removing an older chapter subtracts its exact height without a delayed page jump")
+        let append = ReadingScrollLayout(rows: [.init(id: "top", height: 64, anchors: false), .init(id: "a", height: 900), .init(id: "b", height: 800), .init(id: "c", height: 700), .init(id: "bottom", height: 64, anchors: false)])
+        try expect(append.preservingOffset(from: old, offset: 1100) == 1100, "Appending cannot move existing content")
+    },
+    Check("ReadingSessionTests.scrollLayoutPreservesLoadedImagePoint") {
+        let old = ReadingScrollLayout(rows: [.init(id: "a", height: 1000), .init(id: "b", height: 800)])
+        let resized = ReadingScrollLayout(rows: [.init(id: "a", height: 2000), .init(id: "b", height: 800)])
+        try expect(resized.preservingOffset(from: old, offset: 1200) == 2200, "An image above the viewport can grow without pushing the visible next page down")
+        try expect(resized.preservingOffset(from: old, offset: 250) == 500, "The same relative point remains visible when the current image resolves its true aspect ratio")
+        try expect(old.preservingOffset(from: old, offset: -25) == -25, "Rubber-band movement is not quantized or snapped")
+    },
     Check("ReadingSessionTests.failedAdjacentLoadRetainsActiveChapter") {
         let (session, _, chapter, root) = try await readingFixture(); defer { try? FileManager.default.removeItem(at: root) }
         let original = try await session.open(chapter: chapter, preferences: ReaderPreferences())

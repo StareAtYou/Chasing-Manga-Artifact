@@ -15,7 +15,10 @@ struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; l
     var adjacentLoading = Set<Int>()
     var adjacentErrors: [Int: String] = [:]
     @ObservationIgnored private var errorChapters: [Int: ChapterID] = [:]
-    @ObservationIgnored var viewportAnchor: ReadingProgress?
+    @ObservationIgnored var visibleChapterIDs = Set<ChapterID>()
+    private var pageAspects: [PageID: Double] = [:]
+    func aspect(for id: PageID) -> Double { pageAspects[id] ?? 1.4 }
+    func pageAspect(_ value: Double, for id: PageID) { if value.isFinite, value > 0, pageAspects[id] != value { pageAspects[id] = value } }
     @ObservationIgnored private var positionTask: Task<Void, Never>?
     @ObservationIgnored private var closed = false
     var restoring = true
@@ -62,22 +65,37 @@ struct ReaderScrollRequest: Hashable { let token = UUID(); let pageID: PageID; l
             guard !closed, state?.preferences.mode == .scroll, adjacentChapter(delta)?.id == chapter.id,
                   scrollChapters.count < 3 || (delta < 0 ? scrollChapters.first : scrollChapters.last)?.chapter.id == chapterID else { return }
             if delta < 0 { scrollChapters.insert(prepared, at: 0) } else { scrollChapters.append(prepared) }
-            // Keep a bounded chapter window. Preserve the visible anchor when content above it changes.
-            var removed: [ReaderState] = []
-            if scrollChapters.count > 3 {
-                if delta > 0, scrollChapters.first?.chapter.id != chapterID { removed.append(scrollChapters.removeFirst()) }
-                else if delta < 0, scrollChapters.last?.chapter.id != chapterID { removed.append(scrollChapters.removeLast()) }
-            }
-            if delta < 0 || !removed.isEmpty, let active = state?.progress {
-                let progress = viewportAnchor.flatMap { anchor in scrollChapters.contains { $0.chapter.id == anchor.chapterID } ? anchor : nil } ?? active
-                requestScroll(pageID: progress.pageID, fraction: progress.fraction)
-            }
-            let kept = Set(scrollChapters.map(\.chapter.id))
-            for direction in [-1, 1] where errorChapters[direction] != adjacentChapter(direction)?.id { adjacentErrors[direction] = nil; errorChapters[direction] = nil }
-            readyPages = readyPages.filter { kept.contains($0.chapterID) }
-            await session.retainChapters(kept)
-            for old in removed { await app.images.leave(chapterID: old.chapter.id) }
+            let removed = removeOffscreenChapters(prefer: delta)
+            await releaseChapters(removed)
         } catch is CancellationError { } catch { if !closed, adjacentChapter(delta)?.id == chapter.id { adjacentErrors[delta] = error.localizedDescription; errorChapters[delta] = chapter.id } }
+    }
+    func trimOffscreenChapters() {
+        guard !closed, !restoring else { return }
+        let removed = removeOffscreenChapters()
+        guard !removed.isEmpty else { return }
+        Task { await releaseChapters(removed) }
+    }
+    private func removeOffscreenChapters(prefer delta: Int? = nil) -> [ReaderState] {
+        var removed: [ReaderState] = []
+        while scrollChapters.count > 3 {
+            guard let active = scrollChapters.firstIndex(where: { $0.chapter.id == chapterID }) else { break }
+            let first = delta.map { $0 > 0 } ?? (active >= scrollChapters.count - 1 - active)
+            let candidate = first ? scrollChapters.first! : scrollChapters.last!
+            guard candidate.chapter.id != chapterID, !visibleChapterIDs.contains(candidate.chapter.id) else { break }
+            removed.append(first ? scrollChapters.removeFirst() : scrollChapters.removeLast())
+        }
+        let kept = Set(scrollChapters.map(\.chapter.id))
+        readyPages = readyPages.filter { kept.contains($0.chapterID) }; pageAspects = pageAspects.filter { kept.contains($0.key.chapterID) }
+        for direction in [-1, 1] where errorChapters[direction] != adjacentChapter(direction)?.id { adjacentErrors[direction] = nil; errorChapters[direction] = nil }
+        return removed
+    }
+    private func releaseChapters(_ removed: [ReaderState]) async {
+        guard !closed else { return }
+        // An in-flight adjacent preparation may have completed on the session actor
+        // before its main-actor continuation inserts it into the visible window.
+        let pending = adjacentLoading.compactMap { adjacentChapter($0)?.id }
+        await session.retainChapters(Set(scrollChapters.map(\.chapter.id)).union(pending))
+        for old in removed where !scrollChapters.contains(where: { $0.chapter.id == old.chapter.id }) { await app.images.leave(chapterID: old.chapter.id) }
     }
     func position(_ id: PageID, fraction: Double, mode: ReadingMode) {
         guard !closed, !restoring, let active = state, active.preferences.mode == mode,
