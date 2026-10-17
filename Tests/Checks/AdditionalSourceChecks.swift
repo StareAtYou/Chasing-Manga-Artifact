@@ -12,7 +12,7 @@ private let xkcdJSON = #"{"num":405,"safe_title":"Journal","title":"Journal","im
 public let additionalSourceChecks: [Check] = [
     Check("AdditionalSourceTests.expansionPreservesExistingSourceIdentities") {
         let sources=BuiltinSources.candidates()
-        try expect(sources.count == 9 && Set(sources.map(\.id)).count == sources.count,"All added sources have distinct stable IDs")
+        try expect(sources.count == 11 && Set(sources.map(\.id)).count == sources.count,"All added sources have distinct stable IDs")
         for index in 0..<6 {
             try expect(sources[index].id.rawValue == UUID(uuidString:"00000000-0000-0000-0000-00000000010\(index)"),"Source expansion preserves persisted original identities")
         }

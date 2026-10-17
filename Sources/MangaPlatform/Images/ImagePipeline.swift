@@ -50,8 +50,10 @@ public actor ImagePipeline {
                 current = try await refresh(current, sourceID); response = try await client.send(current.request, sourceID: sourceID, priority: priority)
             }
             guard current.id == page.id else { throw MangaError.parseMismatch("刷新改变了页面身份") }
-            try Task.checkCancellation(); _ = try verifier.verify(response.data)
-            return try await files.writeCache(data: response.data, pageID: page.id)
+            try Task.checkCancellation()
+            let data = try ImageResourceDecoder.decode(response.data, request: current.request)
+            _ = try verifier.verify(data)
+            return try await files.writeCache(data: data, pageID: page.id)
         }
         let job = Job(id: token, priority: priority, task: task); jobs[page.id] = job
         Task { _ = try? await task.value; self.finished(page.id, token: token) }

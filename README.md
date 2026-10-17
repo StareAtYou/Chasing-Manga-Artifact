@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.7 修复瓜子漫画章节请求 403 的阅读回退，并保留 iOS 图片传输、下载并发与队列恢复优化，支持批量清理和点击来源卡片直接阅读，并保留纵向阅读的双向跨话衔接：在尾页继续下滑接上下一话，在首页继续上滑接上上一话末尾，章节标题与阅读进度随可见页面更新。保留规范分类、推荐、自定义解析器绑定、跨源搜索、关联来源、整部下载与离线阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。本次修复与验证范围见 [v0.3.7 记录](docs/guazi-access-0.3.7.md)，下载提速见 [v0.3.6 记录](docs/ios-download-throughput-0.3.6.md)，下载与清理优化见 [v0.3.5 记录](docs/download-optimization-0.3.5.md)，过渡优化见 [v0.3.4 记录](docs/smooth-reading-0.3.4.md)，连续阅读功能见 [连续阅读说明](docs/continuous-reading-0.3.3.md)，此前包子漫画修复见 [v0.3.2 记录](docs/baozi-fix-0.3.2.md)。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.8 新增多看漫画、风车漫画的独立适配器，接入推荐分类、作品目录、阅读与离线下载；多看支持国漫分类入口，风车搜索遇到网站验证时需要在来源页面手动完成验证。保留跨源搜索、关联来源、自定义解析器绑定、整部下载、批量清理与纵向双向跨话阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。本次接入与验证范围见 [v0.3.8 记录](docs/duokan-fengche-0.3.8.md)，瓜子来源访问限制见 [v0.3.7 记录](docs/guazi-access-0.3.7.md)，下载提速见 [v0.3.6 记录](docs/ios-download-throughput-0.3.6.md)。
 
 ## 界面展示
 
@@ -28,7 +28,7 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 
 ## 功能
 
-- 内置漫画站、瓜子漫画、DM5、MangaDex、包子漫画 org、MangaBZ、ComicFury、Dinosaur Comics、xkcd 的独立适配器；访问限制与解析失败分别提示。MangaDex 显示章节语言及汉化组，xkcd 与 Dinosaur Comics 为英文原创系列，ComicFury 为英文原创漫画平台。
+- 内置漫画站、瓜子漫画、DM5、MangaDex、包子漫画 org、MangaBZ、ComicFury、Dinosaur Comics、xkcd、多看漫画、风车漫画的独立适配器；访问限制与解析失败分别提示。MangaDex 显示章节语言及汉化组，xkcd 与 Dinosaur Comics 为英文原创系列，ComicFury 为英文原创漫画平台。
 - 自定义网址与作品样本：依次尝试内置解析器，验证目录和真实图片后绑定方法与版本；有限样本或歧义需要明确处理；样本须位于来源配置的网址与子路径范围内。
 - 多源搜索、手动关联/解除关联、用户选择阅读来源与跨源续读候选；仅阅读能力的来源可从已验证作品或详情网址进入。
 - 书架、历史、更新、离线下载；通知默认关闭。
@@ -38,7 +38,7 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 
 ## macOS 直接使用
 
-解压 `ChasingManga-0.3.7-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+解压 `ChasingManga-0.3.8-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
 
 自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
 

@@ -12,7 +12,8 @@ private final class RetryImageServer: @unchecked Sendable {
     private var stalled: [NWConnection] = []
     private let image: Data
     private let stallFirst: Bool
-    init(image: Data, stallFirst: Bool = false) throws { self.image = image; self.stallFirst = stallFirst; listener = try NWListener(using: .tcp, on: .any) }
+    private let throttleFirst: Bool
+    init(image: Data, stallFirst: Bool = false, throttleFirst: Bool = true) throws { self.image = image; self.stallFirst = stallFirst; self.throttleFirst = throttleFirst; listener = try NWListener(using: .tcp, on: .any) }
     func hasRequest() async -> Bool { await withCheckedContinuation { c in queue.async { c.resume(returning: self.attempts > 0) } } }
     func start() async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
@@ -33,7 +34,7 @@ private final class RetryImageServer: @unchecked Sendable {
             }
             attempts += 1
             if attempts == 1 && stallFirst { stalled.append(connection); return }
-            let throttled = attempts == 1
+            let throttled = attempts == 1 && throttleFirst
             let body = throttled ? Data("retry".utf8) : image
             var response = Data("HTTP/1.1 \(throttled ? "429 Too Many Requests" : "200 OK")\r\nRetry-After: 0\r\nContent-Type: image/png\r\nContent-Length: \(body.count)\r\nConnection: close\r\n\r\n".utf8)
             response.append(body)
@@ -43,12 +44,27 @@ private final class RetryImageServer: @unchecked Sendable {
     func stop() { listener.cancel(); queue.async { self.stalled.forEach { $0.cancel() }; self.stalled.removeAll() } }
 }
 
+private actor EncodedTransferActivity {
+    var consulted = false
+    func isActive() -> Bool { consulted = true; return false }
+}
 private actor TransferActivity {
     var active = true
     func enterBackground() { active = false }
     func enterForeground() { active = true }
 }
 public let backgroundThroughputChecks: [Check] = [
+    Check("CMSImageDecodeTests.inactiveDownloadsDecodeBeforeOfflineVerification") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let vector = try cmsImageVector(); let server = try RetryImageServer(image:vector.cipher, throttleFirst:false)
+        let url = try await server.start(); defer { server.stop() }
+        let activity = EncodedTransferActivity()
+        let transfer = try BackgroundTransfer(root:root,contexts:AccessContextStore(),scheduler:RequestScheduler(),isForeground:{await activity.isActive()},sessionIdentifier:"com.chasingmanga.tests."+UUID().uuidString)
+        let destination = root.appendingPathComponent("decoded.png")
+        let result = try await transfer.download(encodedCMSRequest(url:url),sourceID:Samples.sourceA.id,taskID:UUID(),to:destination)
+        try expect(result.statusCode==200 && result.bytes==vector.plain.count && (try Data(contentsOf:result.file))==vector.plain,"Encoded image transfers need decoding even when the app is inactive, before manifests verify their file")
+        try expect(await activity.consulted,"Public encoded-image requests must preserve the native background route rather than always forcing foreground transfers")
+    },
     Check("BackgroundThroughputTests.activePublicImagesUseRetryingForegroundTransport") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let image = try generatedPNG(); let server = try RetryImageServer(image: image)

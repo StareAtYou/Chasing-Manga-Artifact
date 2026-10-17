@@ -21,6 +21,7 @@ private struct TransferIdentity: Codable, Sendable {
     let taskID: UUID
     let pageKey: String
     let destination: URL
+    var imageEncoding: ImageEncoding? = nil
     var key: String { taskID.uuidString + ":" + pageKey }
 }
 private struct TransferCompletion: Codable {
@@ -67,7 +68,7 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
     private let foreground: URLSessionHTTPClient
     private let isForeground: @Sendable () async -> Bool
     private let finishEvents: @Sendable () -> Void
-    public init(root: URL, contexts: AccessContextStore, scheduler: RequestScheduler, isForeground: (@Sendable () async -> Bool)? = nil, finishEvents: @escaping @Sendable () -> Void = {}) throws {
+    public init(root: URL, contexts: AccessContextStore, scheduler: RequestScheduler, isForeground: (@Sendable () async -> Bool)? = nil, sessionIdentifier: String = BackgroundTransfer.identifier, finishEvents: @escaping @Sendable () -> Void = {}) throws {
         self.contexts = contexts; self.scheduler = scheduler; self.finishEvents = finishEvents
         self.isForeground = isForeground ?? {
             #if os(iOS)
@@ -80,7 +81,7 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         recoveryDirectory = root.appendingPathComponent("transfers", isDirectory: true)
         try FileManager.default.createDirectory(at: recoveryDirectory, withIntermediateDirectories: true)
         super.init()
-        let configuration = URLSessionConfiguration.background(withIdentifier: Self.identifier)
+        let configuration = URLSessionConfiguration.background(withIdentifier: sessionIdentifier)
         configuration.isDiscretionary = false; configuration.httpMaximumConnectionsPerHost = 6
         configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil; configuration.httpShouldSetCookies = false
         configuration.timeoutIntervalForRequest = 120
@@ -110,7 +111,7 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
             return try await downloadInForeground(resource, sourceID: sourceID, to: to)
         }
         let pageKey = to.lastPathComponent.components(separatedBy: ".partial.")[0]
-        let identity = TransferIdentity(taskID: taskID, pageKey: pageKey, destination: to)
+        let identity = TransferIdentity(taskID: taskID, pageKey: pageKey, destination: to, imageEncoding: resource.imageEncoding)
         if let cached = try takeCompletion(identity) { return cached }
         var existing = await backgroundTask(for: identity)
         // Thousands of small images pay a significant scheduling cost in the
@@ -159,13 +160,16 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         }
         try Task.checkCancellation()
         guard case .response(let response) = outcome else { return nil }
-        try response.data.write(to: destination, options: .atomic)
-        return TransferResult(file: destination, statusCode: response.statusCode, bytes: response.data.count)
+        let data = try ImageResourceDecoder.decode(response.data, request: resource)
+        try data.write(to: destination, options: .atomic)
+        return TransferResult(file: destination, statusCode: response.statusCode, bytes: data.count)
     }
     private func downloadInForeground(_ resource: ResourceRequest, sourceID: SourceID, to destination: URL) async throws -> TransferResult {
         let response = try await foreground.send(resource, sourceID: sourceID, priority: .download)
-        try Task.checkCancellation(); try response.data.write(to: destination, options: .atomic)
-        return TransferResult(file: destination, statusCode: response.statusCode, bytes: response.data.count)
+        try Task.checkCancellation()
+        let data = try ImageResourceDecoder.decode(response.data, request: resource)
+        try data.write(to: destination, options: .atomic)
+        return TransferResult(file: destination, statusCode: response.statusCode, bytes: data.count)
     }
     private func completionURL(_ identity: TransferIdentity, nativeID: Int) -> URL {
         recoveryDirectory.appendingPathComponent(ContentDigest.hex(Data((identity.key + ":" + String(nativeID)).utf8)) + ".json")
@@ -202,8 +206,14 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         do {
             let retained = recoveryDirectory.appendingPathComponent(UUID().uuidString + ".image")
             try FileManager.default.moveItem(at: location, to: retained)
-            let bytes = (try retained.resourceValues(forKeys: [.fileSizeKey])).fileSize ?? 0
             let status = (downloadTask.response as? HTTPURLResponse)?.statusCode ?? 0
+            if (200..<300).contains(status), identity.imageEncoding != nil {
+                do {
+                    let decoded = try ImageResourceDecoder.decode(Data(contentsOf: retained), encoding: identity.imageEncoding)
+                    try decoded.write(to: retained, options: .atomic)
+                } catch { try? FileManager.default.removeItem(at: retained); throw error }
+            }
+            let bytes = (try retained.resourceValues(forKeys: [.fileSizeKey])).fileSize ?? 0
             let completion = TransferCompletion(identity: identity, file: retained, statusCode: status, bytes: bytes)
             try JSONEncoder().encode(completion).write(to: completionURL(identity, nativeID: downloadTask.taskIdentifier), options: .atomic)
             let result = TransferResult(file: retained, statusCode: status, bytes: bytes)

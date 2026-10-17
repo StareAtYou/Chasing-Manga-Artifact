@@ -1,5 +1,6 @@
 import Foundation
 public enum HTTPMethod: String, Codable, Sendable { case get = "GET", post = "POST" }
+public enum ImageEncoding: String, Codable, Sendable { case fengcheAES = "fengche-aes-v1" }
 public struct ResourceRequest: Codable, Hashable, Sendable {
     public var url: URL
     public var referer: URL?
@@ -7,8 +8,10 @@ public struct ResourceRequest: Codable, Hashable, Sendable {
     public var accessContextID: UUID?
     public var method: HTTPMethod?
     public var body: Data?
-    public init(url: URL, referer: URL? = nil, headers: [String: String] = [:], accessContextID: UUID? = nil, method: HTTPMethod? = nil, body: Data? = nil) {
+    public var imageEncoding: ImageEncoding?
+    public init(url: URL, referer: URL? = nil, headers: [String: String] = [:], accessContextID: UUID? = nil, method: HTTPMethod? = nil, body: Data? = nil, imageEncoding: ImageEncoding? = nil) {
         self.url = url; self.referer = referer; self.headers = headers; self.accessContextID = accessContextID; self.method = method; self.body = body
+        self.imageEncoding = imageEncoding
     }
 }
 public struct ResourceResponse: Sendable {

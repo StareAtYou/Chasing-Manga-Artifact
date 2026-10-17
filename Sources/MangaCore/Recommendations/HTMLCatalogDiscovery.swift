@@ -6,7 +6,7 @@ public enum HTMLCatalogDiscovery {
     private static let headingSelector="h1,h2,h3,h4,.list-con-title,.index-rank-title,.rank-title,.index-title"
     private static func popular(_ text:String) -> Bool {
         let text=CatalogTaxonomy.normalized(text).lowercased()
-        return ["排行","人气","热度","热门推荐","热门漫画","popular","most read","most viewed"].contains(where:text.contains)
+        return ["排行","人气","热度","热门推荐","热门漫画","周榜","月榜","总榜","popular","most read","most viewed"].contains(where:text.contains)
     }
     private static func identity(_ url:URL) -> String {
         var c=URLComponents(url:url,resolvingAgainstBaseURL:false)!

@@ -24,7 +24,7 @@ func argument(_ name: String) -> String? { guard let index = CommandLine.argumen
 guard CommandLine.arguments.contains("--online"), let sourceName = argument("--source") else {
     print("Usage: swift run SourceProbe --source SOURCE --online --catalog [--genre NAME] OR --work-url URL"); exit(2)
 }
-let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5, "mangabz": 6, "comicfury": 7, "qwantz": 8][sourceName] ?? -1
+let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5, "mangabz": 6, "comicfury": 7, "qwantz": 8, "duokan": 9, "fengche": 10][sourceName] ?? -1
 guard index >= 0 else { print("Unknown source"); exit(2) }
 let source = BuiltinSources.candidates()[index]
 guard let adapter = BuiltinSources.candidateAdapter(for: source) else { print("Adapter pending"); exit(2) }
@@ -89,7 +89,7 @@ do {
             for (imageIndex, page) in (pages.count > 1 ? [pages.first!, pages.last!] : pages).enumerated() {
                 do {
                     let response = try await client.send(page.request, sourceID: source.id, priority: .probe)
-                    let metadata = try ImageVerifier().verify(response.data)
+                    let metadata = try ImageVerifier().verify(ImageResourceDecoder.decode(response.data, request: page.request))
                     outcome[imageIndex == 0 ? "firstImage" : "lastImage"] = ["width": metadata.width, "height": metadata.height, "format": metadata.format]
                     decoded += 1
                 } catch { passed = false; outcome["imageError"] = error.localizedDescription }

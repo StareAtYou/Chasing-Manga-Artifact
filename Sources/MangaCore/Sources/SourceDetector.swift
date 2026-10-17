@@ -75,7 +75,7 @@ public struct SourceDetector: Sendable {
                         let representatives = pages.count > 1 ? [pages.first!, pages.last!] : [pages[0]]
                         for page in representatives {
                             let response = try await limitedClient.send(page.request, sourceID: source.id, priority: .probe)
-                            _ = try verifier.verify(response.data)
+                            _ = try verifier.verify(ImageResourceDecoder.decode(response.data, request: page.request))
                             workPreviews.append(page)
                         }
                         workFingerprints.append(semanticID(url) + "|" + semanticID(chapter.url) + "|count:\(sample.totalCount)|" + pages.map { page in

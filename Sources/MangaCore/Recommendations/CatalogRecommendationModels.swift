@@ -48,7 +48,7 @@ public enum CatalogTaxonomy {
         let name = normalized(title)
         guard !name.isEmpty, name.count <= 40, name.unicodeScalars.contains(where: CharacterSet.letters.contains) else { return nil }
         let controls: Set<String> = ["全部", "全部分类", "全部类型", "全部漫画", "漫画大全", "首页", "末页", "尾页", "返回", "更多", "查看更多", "展开", "收起", "分类", "状态", "排序", "连载", "连载中", "完结", "已完结", "已完成", "最新", "最近更新", "更新时间", "更新日期", "人气", "热度", "热门", "热门漫画", "热门推荐", "人气排行", "热度排行", "评分", "搜索", "筛选", "all", "next", "previous", "prev", "first", "last", "home", "more", "show more", "load more", "ongoing", "completed", "complete", "latest", "last update", "last updated", "popularity", "popular", "sort", "status"]
-        let lower = name.lowercased()
+        let lower = name.lowercased().trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: ">＜<›»→←》")))
         guard !controls.contains(lower), !["下一页", "上一页", "下一章", "上一章", "next page", "previous page", "prev page"].contains(where: lower.contains), lower.range(of: #"^(?:page|第)\s*\d+(?:\s*页)?$"#, options: .regularExpression) == nil else { return nil }
         return name
     }
