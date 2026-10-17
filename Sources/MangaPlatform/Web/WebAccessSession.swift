@@ -10,6 +10,8 @@ import MangaCore
     private var token: UUID?
     private var timeout: Task<Void, Never>?
     private var snapshotTask: Task<Void, Never>?
+    private var readinessTask: Task<Void, Never>?
+    private var capturesReaderDOM: Bool { source.baseURL.host == "www.guazimanhua.com" || source.binding?.parserID == "guazi-html" }
     public init(source: Source, contexts: AccessContextStore) {
         self.source = source; self.contexts = contexts
         let configuration = WKWebViewConfiguration()
@@ -17,7 +19,7 @@ import MangaCore
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init(); webView.navigationDelegate = self
     }
-    public func cancel() { lifecycle.cancel(); timeout?.cancel(); snapshotTask?.cancel(); webView.stopLoading(); token = nil; navigation = nil }
+    public func cancel() { lifecycle.cancel(); timeout?.cancel(); snapshotTask?.cancel(); readinessTask?.cancel(); webView.stopLoading(); token = nil; navigation = nil }
     public func open(_ url: URL) throws {
         guard WebAccessPolicy.permits(url, source: source) else { throw MangaError.invalidURL }
         webView.load(URLRequest(url: url))
@@ -34,8 +36,8 @@ import MangaCore
         }
         do {
             let page = try await lifecycle.wait(token: token)
-            timeout?.cancel(); return page
-        } catch { timeout?.cancel(); snapshotTask?.cancel(); webView.stopLoading(); throw error }
+            timeout?.cancel(); readinessTask?.cancel(); return page
+        } catch { timeout?.cancel(); snapshotTask?.cancel(); readinessTask?.cancel(); webView.stopLoading(); throw error }
     }
     public func snapshot() async throws -> RenderedPage {
         guard let url = webView.url, WebAccessPolicy.permits(url, source: source) else { throw MangaError.invalidURL }
@@ -61,6 +63,7 @@ import MangaCore
         let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
         let scoped = cookies.map { cookie in ScopedCookie(name: cookie.name, value: cookie.value, domain: cookie.domain, path: cookie.path, secure: cookie.isSecure, expires: cookie.expiresDate, hostOnly: !cookie.domain.hasPrefix(".")) }
         let userAgent = try await webView.evaluateJavaScript("navigator.userAgent") as? String
+        if capturesReaderDOM, let userAgent { metadata["reader.userAgent"] = userAgent }
         let headers = userAgent.map { ["User-Agent": $0] } ?? [:]
         let context = try await contexts.register(sourceID: source.id, originURL: url, headers: headers, cookies: scoped)
         return RenderedPage(url: url, html: html, accessContextID: context, metadata: metadata)
@@ -72,9 +75,37 @@ import MangaCore
     }
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let token, navigation === self.navigation else { return }
+        if capturesReaderDOM { readinessTask?.cancel(); captureReader(token: token, navigation: navigation, stopAssets: false); return }
         snapshotTask?.cancel()
         snapshotTask = Task { @MainActor in
             do { let page = try await snapshot(); lifecycle.finish(token: token, result: .success(page)) }
+            catch { lifecycle.finish(token: token, result: .failure(error)) }
+        }
+    }
+    public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        guard capturesReaderDOM, let token, navigation === self.navigation else { return }
+        readinessTask?.cancel()
+        readinessTask = Task { @MainActor in
+            for _ in 0..<120 {
+                guard !Task.isCancelled, self.token == token, navigation === self.navigation else { return }
+                let ready = (try? await webView.evaluateJavaScript("document.readyState !== 'loading' && document.querySelectorAll('img.reading-image').length > 0")) as? Bool ?? false
+                guard !Task.isCancelled, self.token == token, navigation === self.navigation else { return }
+                if ready { captureReader(token: token, navigation: navigation, stopAssets: true); return }
+                do { try await Task.sleep(for: .milliseconds(100)) } catch { return }
+            }
+        }
+    }
+    private func captureReader(token: UUID, navigation: WKNavigation, stopAssets: Bool) {
+        guard self.token == token, navigation === self.navigation else { return }
+        snapshotTask?.cancel()
+        snapshotTask = Task { @MainActor in
+            do {
+                let page = try await snapshot(); try Task.checkCancellation()
+                guard self.token == token, navigation === self.navigation else { return }
+                lifecycle.finish(token: token, result: .success(page))
+                self.token = nil; self.navigation = nil
+                if stopAssets { webView.stopLoading() }
+            } catch is CancellationError { }
             catch { lifecycle.finish(token: token, result: .failure(error)) }
         }
     }
