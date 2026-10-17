@@ -42,6 +42,13 @@ public let guaziAccessChecks: [Check] = [
             catch MangaError.requiresLogin { try expect(title == "请登录", "Login remains distinct") }
         }
     },
+    Check("GuaziAccessTests.browserForbiddenPageRemainsAccessError") {
+        let source = BuiltinSources.candidates()[1]; let chapter = guaziReaderChapter()
+        let client = FixtureHTTPClient([chapter.url.absoluteString: ResourceResponse(data: Data(), finalURL: chapter.url, statusCode: 403)])
+        let browser = FixturePageRenderer(page: RenderedPage(url: chapter.url, html: "<html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><hr>nginx</body></html>"))
+        do { _ = try await GuaziAdapter().pages(chapter: chapter, context: ParserContext(source: source, client: client, renderer: browser)); throw CheckFailure(description: "Browser server denial must remain an access error") }
+        catch MangaError.accessRestricted(403) { }
+    },
     Check("GuaziAccessTests.browserCannotSubstituteAnotherChapter") {
         let source = BuiltinSources.candidates()[1]; let chapter = guaziReaderChapter()
         for url in [URL(string: "https://other.test/chapter.php?id=2001")!,guaziReaderChapter("2002").url] {
