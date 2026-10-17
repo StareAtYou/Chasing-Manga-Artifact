@@ -7,4 +7,7 @@ import MangaChecksSupport
 @Suite struct SourceReadingTests {
     @Test(arguments: sourceReadingChecks) func contract(_ check: Check) async throws { try await check.body() }
 }
+@Suite struct BackgroundThroughputTests {
+    @Test(arguments: backgroundThroughputChecks) func contract(_ check: Check) async throws { try await check.body() }
+}
 #endif

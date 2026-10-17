@@ -2,18 +2,23 @@ import Foundation
 import MangaCore
 import MangaPlatform
 actor SearchFixtureClient: HTTPClient {
+    let holdOld: Bool
+    var oldStarted = false
+    private var oldGate: CheckedContinuation<Void, Never>?
+    init(holdOld: Bool = false) { self.holdOld = holdOld }
+    func releaseOld() { oldGate?.resume(); oldGate = nil }
     func send(_ request: ResourceRequest, sourceID: SourceID, priority: RequestPriority) async throws -> ResourceResponse {
         if sourceID == Samples.sourceB.id { try await Task.sleep(for: .milliseconds(30)); throw MangaError.timedOut }
         let query = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.queryItems?.first?.value ?? ""
-        if query == "old" { try? await Task.sleep(for: .milliseconds(50)) }
+        if query == "old", holdOld { oldStarted = true; await withCheckedContinuation { oldGate = $0 } }
         return textResponse("<a data-work-id='42' href='/comic/42'>\(query)</a>", request.url)
     }
 }
-func searchFixture() async throws -> (SearchService, LibraryStore, URL) {
+func searchFixture(client: SearchFixtureClient = SearchFixtureClient()) async throws -> (SearchService, LibraryStore, URL) {
     let directory = try Samples.temporaryDirectory(); let store = try LibraryStore(databaseURL: directory.appendingPathComponent("db.sqlite"))
     var template = HTMLTemplate(); template.searchPath = "/search?query={query}"
     for original in [Samples.sourceA, Samples.sourceB] { var source = original; source.binding = ParserBinding(parserID: "test-search"); source.capabilities = [.search]; try await store.save(source: source) }
-    let sources = SourceService(store: store, registry: ParserRegistry(adapters: [HTMLTemplateAdapter(id: "test-search", template: template)]), client: SearchFixtureClient(), verifier: ImageVerifier())
+    let sources = SourceService(store: store, registry: ParserRegistry(adapters: [HTMLTemplateAdapter(id: "test-search", template: template)]), client: client, verifier: ImageVerifier())
     return (SearchService(store: store, sources: sources), store, directory)
 }
 public let searchServiceChecks: [Check] = [
@@ -26,12 +31,16 @@ public let searchServiceChecks: [Check] = [
         try expect(events.contains { if case .failure(_, _, .timedOut) = $0 { return true }; return false }, "Slow error remains independent")
     },
     Check("SearchServiceTests.oldQueryCannotReplaceNewResults") {
-        let (service, _, directory) = try await searchFixture(); defer { try? FileManager.default.removeItem(at: directory) }
+        let client = SearchFixtureClient(holdOld: true)
+        let (service, _, directory) = try await searchFixture(client: client); defer { try? FileManager.default.removeItem(at: directory) }
         let oldID = UUID(); let old = await service.search(query: "old", sourceIDs: [Samples.sourceA.id], queryID: oldID)
         let oldTask = Task { var results: [SourceWork] = []; for await event in old { if case .results(_, _, let items) = event { results += items } }; return results }
-        for _ in 0..<100 { await Task.yield() }
+        for _ in 0..<1000 { if await client.oldStarted { break }; try await Task.sleep(for: .milliseconds(1)) }
+        try expect(await client.oldStarted, "Old request must be pending before it is superseded")
         let newID = UUID(); var names: [String] = []
-        for await event in await service.search(query: "new", sourceIDs: [Samples.sourceA.id], queryID: newID) { if case .results(let id, _, let items) = event { try expect(id == newID, "Tag correct query"); names += items.map(\.title) } }
+        let new = await service.search(query: "new", sourceIDs: [Samples.sourceA.id], queryID: newID)
+        await client.releaseOld()
+        for await event in new { if case .results(let id, _, let items) = event { try expect(id == newID, "Tag correct query"); names += items.map(\.title) } }
         let oldResults = await oldTask.value
         try expect(names == ["new"] && oldResults.isEmpty, "Superseded query must not emit stale results")
     }

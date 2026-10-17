@@ -42,6 +42,7 @@ public final class URLSessionTransport: ScopedHTTPTransport, Sendable {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil
         configuration.httpShouldSetCookies = false; configuration.timeoutIntervalForRequest = 12
+        configuration.httpMaximumConnectionsPerHost = 6
         session = URLSession(configuration: configuration)
     }
     public func load(_ request: URLRequest) async throws -> ResourceResponse { try await load(request, delegate: SafeRedirectDelegate()) }

@@ -1,5 +1,22 @@
 import Foundation
 import MangaCore
+#if os(iOS)
+import UIKit
+@MainActor private final class TransferExecutionLease {
+    private var identifier: UIBackgroundTaskIdentifier = .invalid
+    init() {
+        guard UIApplication.shared.applicationState != .background else { return }
+        identifier = UIApplication.shared.beginBackgroundTask(withName: "Hand off comic image transfer") { [weak self] in
+            Task { @MainActor in self?.end() }
+        }
+    }
+    func end() {
+        guard identifier != .invalid else { return }
+        let current = identifier; identifier = .invalid
+        UIApplication.shared.endBackgroundTask(current)
+    }
+}
+#endif
 private struct TransferIdentity: Codable, Sendable {
     let taskID: UUID
     let pageKey: String
@@ -48,15 +65,23 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
     private let scheduler: RequestScheduler
     private let recoveryDirectory: URL
     private let foreground: URLSessionHTTPClient
+    private let isForeground: @Sendable () async -> Bool
     private let finishEvents: @Sendable () -> Void
-    public init(root: URL, contexts: AccessContextStore, scheduler: RequestScheduler, finishEvents: @escaping @Sendable () -> Void = {}) throws {
+    public init(root: URL, contexts: AccessContextStore, scheduler: RequestScheduler, isForeground: (@Sendable () async -> Bool)? = nil, finishEvents: @escaping @Sendable () -> Void = {}) throws {
         self.contexts = contexts; self.scheduler = scheduler; self.finishEvents = finishEvents
+        self.isForeground = isForeground ?? {
+            #if os(iOS)
+            await MainActor.run { UIApplication.shared.applicationState != .background }
+            #else
+            true
+            #endif
+        }
         foreground = URLSessionHTTPClient(scheduler: scheduler, contexts: contexts)
         recoveryDirectory = root.appendingPathComponent("transfers", isDirectory: true)
         try FileManager.default.createDirectory(at: recoveryDirectory, withIntermediateDirectories: true)
         super.init()
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.identifier)
-        configuration.isDiscretionary = false; configuration.httpMaximumConnectionsPerHost = 4
+        configuration.isDiscretionary = false; configuration.httpMaximumConnectionsPerHost = 6
         configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil; configuration.httpShouldSetCookies = false
         configuration.timeoutIntervalForRequest = 120
         #if os(iOS)
@@ -65,19 +90,38 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
     }
     public func download(_ resource: ResourceRequest, sourceID: SourceID, taskID: UUID, to: URL) async throws -> TransferResult {
+        #if os(iOS)
+        let execution = await TransferExecutionLease()
+        do {
+            let result = try await routeDownload(resource, sourceID: sourceID, taskID: taskID, to: to)
+            await execution.end(); return result
+        } catch { await execution.end(); throw error }
+        #else
+        return try await routeDownload(resource, sourceID: sourceID, taskID: taskID, to: to)
+        #endif
+    }
+    private func routeDownload(_ resource: ResourceRequest, sourceID: SourceID, taskID: UUID, to: URL) async throws -> TransferResult {
         let scoped = await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url)
         let publicHeaders = Set(["accept", "accept-language", "accept-encoding", "user-agent", "referer", "content-type", "x-requested-with"])
         let credentialed = resource.body != nil || resource.method == .post || !scoped.isEmpty || resource.headers.keys.contains { !publicHeaders.contains($0.lowercased()) }
         // Foundation background sessions always follow redirects and skip the redirect delegate.
         // Credentialed requests use the controlled foreground transport instead.
         if credentialed {
-            let response = try await foreground.send(resource, sourceID: sourceID, priority: .download)
-            try Task.checkCancellation(); try response.data.write(to: to, options: .atomic)
-            return TransferResult(file: to, statusCode: response.statusCode, bytes: response.data.count)
+            return try await downloadInForeground(resource, sourceID: sourceID, to: to)
         }
         let pageKey = to.lastPathComponent.components(separatedBy: ".partial.")[0]
         let identity = TransferIdentity(taskID: taskID, pageKey: pageKey, destination: to)
         if let cached = try takeCompletion(identity) { return cached }
+        var existing = await backgroundTask(for: identity)
+        // Thousands of small images pay a significant scheduling cost in the
+        // system background daemon. Active apps reuse the foreground connection
+        // pool, while already-running background tasks retain their ownership.
+        if existing == nil, await isForeground() {
+            if let result = try await downloadWhileActive(resource, sourceID: sourceID, to: to) { return result }
+            try Task.checkCancellation()
+            if let cached = try takeCompletion(identity) { return cached }
+            existing = await backgroundTask(for: identity)
+        }
         let lease = try await scheduler.acquire(sourceID: sourceID, priority: .download)
         do {
             try Task.checkCancellation()
@@ -85,8 +129,6 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
             request.allHTTPHeaderFields = resource.headers; request.httpMethod = resource.method?.rawValue ?? "GET"; request.httpBody = resource.body
             if let referer = resource.referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             for (key, value) in await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url) { request.setValue(value, forHTTPHeaderField: key) }
-            let tasks = await session.allTasks
-            let existing = tasks.first { task in Self.identity(task)?.key == identity.key && task.state != .canceling && task.state != .completed }
             let native = existing ?? session.downloadTask(with: request)
             if existing == nil { native.taskDescription = String(decoding: try JSONEncoder().encode(identity), as: UTF8.self) }
             let result = try await withTaskCancellationHandler {
@@ -98,6 +140,32 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
             removeCompletion(identity, file: result.file)
             await scheduler.release(lease); return result
         } catch { await scheduler.release(lease); throw error }
+    }
+    private func backgroundTask(for identity: TransferIdentity) async -> URLSessionTask? {
+        await session.allTasks.first { task in Self.identity(task)?.key == identity.key && task.state != .canceling && task.state != .completed }
+    }
+    private enum ActiveOutcome: Sendable { case response(ResourceResponse), background }
+    private func downloadWhileActive(_ resource: ResourceRequest, sourceID: SourceID, to destination: URL) async throws -> TransferResult? {
+        let outcome = try await withThrowingTaskGroup(of: ActiveOutcome.self) { group in
+            group.addTask { .response(try await self.foreground.send(resource, sourceID: sourceID, priority: .download)) }
+            group.addTask {
+                while await self.isForeground() { try await Task.sleep(for: .milliseconds(100)) }
+                try Task.checkCancellation(); return .background
+            }
+            defer { group.cancelAll() }
+            // Cancellation of the losing child is drained before handoff. The
+            // manager keeps the same generation, destination and offline entry.
+            return try await group.next()!
+        }
+        try Task.checkCancellation()
+        guard case .response(let response) = outcome else { return nil }
+        try response.data.write(to: destination, options: .atomic)
+        return TransferResult(file: destination, statusCode: response.statusCode, bytes: response.data.count)
+    }
+    private func downloadInForeground(_ resource: ResourceRequest, sourceID: SourceID, to destination: URL) async throws -> TransferResult {
+        let response = try await foreground.send(resource, sourceID: sourceID, priority: .download)
+        try Task.checkCancellation(); try response.data.write(to: destination, options: .atomic)
+        return TransferResult(file: destination, statusCode: response.statusCode, bytes: response.data.count)
     }
     private func completionURL(_ identity: TransferIdentity, nativeID: Int) -> URL {
         recoveryDirectory.appendingPathComponent(ContentDigest.hex(Data((identity.key + ":" + String(nativeID)).utf8)) + ".json")

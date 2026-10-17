@@ -6,6 +6,8 @@ public struct DownloadTask: Codable, Sendable, Identifiable {
     public var pages: [PageResource]
     public let sourceSnapshot: Source?
     public var needsRefresh: Bool? = false
+    /// Distinguishes user-requested refresh from older automatic restart markers.
+    public var refreshRequested: Bool?
     public var state: DownloadState = .queued
     public var completedPages = 0
     public var bytes = 0

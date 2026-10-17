@@ -17,7 +17,7 @@ public actor RequestScheduler {
     private var active: [UUID: Active] = [:]
     private let globalLimit: Int
     private let sourceLimit: Int
-    public init(globalLimit: Int = 8, sourceLimit: Int = 4) {
+    public init(globalLimit: Int = 10, sourceLimit: Int = 7) {
         self.globalLimit = max(1, globalLimit); self.sourceLimit = max(1, sourceLimit)
     }
     public func acquire(sourceID: SourceID, priority: RequestPriority) async throws -> UUID {

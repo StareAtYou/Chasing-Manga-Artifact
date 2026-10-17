@@ -17,6 +17,12 @@ private actor MeasuredPageTransfer: PageTransferring {
     }
     func recoverTransfers() async throws -> [TransferRecord] { [] }
 }
+private struct HeldPageTransfer: PageTransferring {
+    func download(_ request: ResourceRequest, sourceID: SourceID, taskID: UUID, to destination: URL) async throws -> TransferResult {
+        try await Task.sleep(for: .seconds(30)); throw CancellationError()
+    }
+    func recoverTransfers() async throws -> [TransferRecord] { [] }
+}
 private func settledTransfer(_ manager: DownloadManager, _ id: UUID) async throws -> DownloadTask {
     for _ in 0..<1000 {
         if let value = try await manager.task(id: id), [.completed,.failed,.paused,.cancelled].contains(value.state) { return value }
@@ -25,6 +31,73 @@ private func settledTransfer(_ manager: DownloadManager, _ id: UUID) async throw
     throw CheckFailure(description: "Transfer failed to settle")
 }
 public let transferPerformanceChecks: [Check] = [
+    Check("TransferPerformanceTests.queuedExplicitRetryKeepsRefreshIntentAcrossRestart") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db"))
+        let first = try DownloadManager(store: store, transfer: HeldPageTransfer(), verifier: ImageVerifier(), root: root)
+        var held: [UUID] = []
+        for index in 0..<4 {
+            let chapter = Samples.chapter(Samples.work(externalID: "held-\(index / 2)"), externalID: String(index))
+            held.append(try await first.enqueue(chapter: chapter, pages: Samples.pages(chapter, count: 1)))
+        }
+        let chapter = Samples.chapter(Samples.work(externalID: "signed"))
+        var failed = DownloadTask(chapter: chapter, pages: Samples.pages(chapter), sourceSnapshot: nil); failed.state = .failed
+        _ = try await store.saveDownload(task: failed, manifest: OfflineManifest(taskID: failed.id, chapterID: chapter.id))
+        try await first.retry(taskID: failed.id)
+        let queued = try await first.task(id: failed.id)!
+        try expect(queued.state == .queued, "Explicit retry must be captured while waiting behind active jobs")
+        try await first.pause(taskID: failed.id)
+        for id in held { try await first.pause(taskID: id) }
+        let restoredStore = try LibraryStore(databaseURL: root.appendingPathComponent("restarted-db"))
+        _ = try await restoredStore.saveDownload(task: queued, manifest: OfflineManifest(taskID: queued.id, chapterID: chapter.id))
+        let transfer = FixtureTransfer(data: try generatedPNG())
+        let restarted = try DownloadManager(store: restoredStore, transfer: transfer, verifier: ImageVerifier(), root: root, refresh: { chapter in
+            Samples.pages(chapter).map { page in var fresh = page; fresh.request.url = fresh.request.url.appending(queryItems: [URLQueryItem(name: "signature", value: "renewed")]); return fresh }
+        })
+        try await restarted.restore()
+        try expect(try await settledTransfer(restarted, queued.id).state == .completed, "Queued explicit retry should complete after restart")
+        try expect(await transfer.calls.allSatisfy { $0.query?.contains("signature=renewed") == true }, "Restart must retain explicitly requested signature refresh")
+    },
+    Check("TransferPerformanceTests.restartUsesUsablePublicPagesWithoutBlockedChapterFetch") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db"))
+        let chapter = Samples.chapter(Samples.work()); let task = DownloadTask(chapter: chapter, pages: Samples.pages(chapter), sourceSnapshot: nil)
+        _ = try await store.saveDownload(task: task, manifest: OfflineManifest(taskID: task.id, chapterID: chapter.id))
+        let manager = try DownloadManager(store: store, transfer: FixtureTransfer(data: try generatedPNG()), verifier: ImageVerifier(), root: root, refresh: { _ in throw MangaError.accessRestricted(403) })
+        try await manager.restore()
+        try expect(try await settledTransfer(manager, task.id).state == .completed, "A blocked chapter page must not prevent restoring usable public CDN resources")
+    },
+    Check("TransferPerformanceTests.upgradeRecoversLegacyRefreshFailuresButKeepsPausedTasks") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db")); let work = Samples.work()
+        let chapter = Samples.chapter(work); var legacy = DownloadTask(chapter: chapter, pages: Samples.pages(chapter), sourceSnapshot: nil)
+        legacy.state = .failed; legacy.error = .accessRestricted(403); legacy.needsRefresh = true
+        _ = try await store.saveDownload(task: legacy, manifest: OfflineManifest(taskID: legacy.id, chapterID: chapter.id))
+        let other = Samples.chapter(work, externalID: "paused"); var paused = DownloadTask(chapter: other, pages: Samples.pages(other), sourceSnapshot: nil); paused.state = .paused
+        _ = try await store.saveDownload(task: paused, manifest: OfflineManifest(taskID: paused.id, chapterID: other.id))
+        let manager = try DownloadManager(store: store, transfer: FixtureTransfer(data: try generatedPNG()), verifier: ImageVerifier(), root: root, refresh: { _ in throw MangaError.accessRestricted(403) })
+        try await manager.restore()
+        try expect(try await settledTransfer(manager, legacy.id).state == .completed, "Legacy forced-refresh failures must get one attempt using retained CDN addresses")
+        try expect(try await manager.task(id: paused.id)?.state == .paused, "Recovery must respect the user's paused tasks")
+    },
+    Check("TransferPerformanceTests.restartRefreshesExpiredAndEphemeralPageContexts") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db")); let work = Samples.work()
+        var ids: [UUID] = []
+        for index in 0..<2 {
+            let chapter = Samples.chapter(work, externalID: String(index)); var pages = Samples.pages(chapter)
+            if index == 0 { pages[0].expiresAt = .distantPast } else { pages[0].request.accessContextID = UUID() }
+            let task = DownloadTask(chapter: chapter, pages: pages, sourceSnapshot: nil); ids.append(task.id)
+            _ = try await store.saveDownload(task: task, manifest: OfflineManifest(taskID: task.id, chapterID: chapter.id))
+        }
+        let transfer = FixtureTransfer(data: try generatedPNG())
+        let manager = try DownloadManager(store: store, transfer: transfer, verifier: ImageVerifier(), root: root, refresh: { chapter in
+            Samples.pages(chapter).map { page in var fresh = page; fresh.request.url = fresh.request.url.appending(queryItems: [URLQueryItem(name: "fresh", value: "yes")]); return fresh }
+        })
+        try await manager.restore()
+        for id in ids { try expect(try await settledTransfer(manager, id).state == .completed, "Expired/context-bound downloads still refresh before restart") }
+        try expect(await transfer.calls.allSatisfy { $0.query?.contains("fresh=yes") == true }, "Stale temporary contexts must not be sent to the image transport")
+    },
     Check("TransferPerformanceTests.failedRemovalLeavesRecoverablePausedTasks") {
         let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
         let store = try LibraryStore(databaseURL: root.appendingPathComponent("db"))
@@ -65,7 +138,7 @@ public let transferPerformanceChecks: [Check] = [
         print("MEASURE single-chapter-12-images \(start.duration(to: .now))")
         try expect(done.state == .completed && done.completedPages == 12, "Parallel transfer must complete every original page")
         let peak = await transfer.peak
-        try expect(peak >= 3 && peak <= 6, "One chapter should overlap image requests within a bounded budget")
+        try expect(peak == 6, "One chapter should fill the six-image source budget without exceeding it")
         let files = try await manager.offlinePages(chapterID: chapter.id)
         try expect(files.count == 12 && Set(files).count == 12, "Parallel completion preserves all page identities and offline ordering")
     },

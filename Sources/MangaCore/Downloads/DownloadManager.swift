@@ -14,7 +14,7 @@ public actor DownloadManager {
     private var jobWorks: [UUID: SourceWorkID] = [:]
     // This local admission budget is shared by all chapters/works; the transport
     // separately applies download priority against visible reading requests.
-    private let pageSlots = RequestScheduler(globalLimit: 6, sourceLimit: 3)
+    private let pageSlots = RequestScheduler(globalLimit: 8, sourceLimit: 6)
     private let startupRecovery: Task<Void, Never>
     private var cleanup: Task<Void, Never>?
     private var removingWorks = Set<SourceWorkID>()
@@ -93,6 +93,9 @@ public actor DownloadManager {
         guard entry.filename == ContentDigest.filename(entry.pageID), let data = try? Data(contentsOf: folder(taskID).appendingPathComponent(entry.filename)), data.count == entry.bytes, ContentDigest.hex(data) == entry.digest, (try? verifier.verify(data)) != nil else { return false }
         return true
     }
+    private func requiresFreshPages(_ task: DownloadTask) -> Bool {
+        task.pages.isEmpty || task.pages.contains { $0.request.accessContextID != nil || ($0.expiresAt ?? .distantFuture) <= Date() }
+    }
     private func save(_ task: DownloadTask, _ manifest: OfflineManifest) async throws {
         try stillCurrent(task.id, task.generation)
         guard try await store.saveDownload(task: task, manifest: manifest, expectedGeneration: task.generation) else { throw CancellationError() }
@@ -116,11 +119,15 @@ public actor DownloadManager {
                 task.pages = try await refresh(task.chapter); try validatePages(task.pages, chapter: task.chapter)
             }
             task.needsRefresh = false
+            task.refreshRequested = false
             let identities = Set(task.pages.map(\.id)); manifest.entries = manifest.entries.filter { identities.contains($0.pageID) && valid($0, taskID: id) }.map { entry in
                 let ordinal = task.pages.first { $0.id == entry.pageID }!.ordinal
                 return OfflineEntry(pageID: entry.pageID, ordinal: ordinal, filename: entry.filename, digest: entry.digest, bytes: entry.bytes)
             }
             task.bytes = manifest.entries.reduce(0) { $0 + $1.bytes }
+            // Persist the cleared refresh marker even if the very first image
+            // fails, so legacy recovery cannot retry itself on every launch.
+            try await save(task, manifest)
             let missing = task.pages.sorted { $0.ordinal < $1.ordinal }.filter { page in !manifest.entries.contains { $0.pageID == page.id } }
             let transfer = self.transfer, verifier = self.verifier, slots = self.pageSlots
             let directory = folder(id)
@@ -132,7 +139,7 @@ public actor DownloadManager {
                         catch { return .failure(error) }
                     }
                 }
-                for _ in 0..<min(3, missing.count) { add(missing[index]); index += 1 }
+                for _ in 0..<min(6, missing.count) { add(missing[index]); index += 1 }
                 var failure: Error?
                 while let result = try await group.next() {
                     try stillCurrent(id, generation)
@@ -186,7 +193,9 @@ public actor DownloadManager {
     }
     private func transition(_ id: UUID, to state: DownloadState, preparationEpoch: UUID? = nil) async throws {
         guard var task = try await task(id: id) else { return }
-        let old = task.generation; task.generation = UUID(); task.state = state; if state == .queued { task.needsRefresh = true }; task.error = nil; task.updatedAt = Date()
+        let old = task.generation; task.generation = UUID(); task.state = state
+        if state == .queued { task.needsRefresh = true; task.refreshRequested = true }
+        task.error = nil; task.updatedAt = Date()
         guard try await store.saveDownload(task: task, manifest: nil, expectedGeneration: old, expectedWorkEpoch: preparationEpoch, bringToShelf: state == .queued) else { return }
         jobs.removeValue(forKey: id)?.cancel(); tokens.removeValue(forKey: id); jobWorks.removeValue(forKey: id); remember(task)
         schedule()
@@ -244,7 +253,14 @@ public actor DownloadManager {
             let before = manifest.entries.count; manifest.entries = manifest.entries.filter { valid($0, taskID: task.id) }
             task.completedPages = manifest.entries.count; task.bytes = manifest.entries.reduce(0) { $0 + $1.bytes }
             if task.state == .completed && (before != manifest.entries.count || manifest.entries.count != task.pages.count) { task.state = .failed; task.error = .invalidImage }
-            if task.state == .running { task.state = .queued }; if task.state == .queued { task.needsRefresh = true }
+            if task.state == .failed, task.needsRefresh == true, task.refreshRequested != true, task.error == .accessRestricted(403), !requiresFreshPages(task) {
+                let source = try await store.source(id: task.chapter.id.sourceWorkID.sourceID)
+                if source?.enabled != false && source?.removed != true { task.state = .queued; task.error = nil }
+            }
+            if task.state == .running { task.state = .queued }
+            // Public CDN addresses survive app restarts. Only temporary access
+            // contexts and explicitly expired resources require a fresh chapter.
+            if task.state == .queued { task.needsRefresh = task.refreshRequested == true || requiresFreshPages(task) }
             _ = try await store.saveDownload(task: task, manifest: manifest, expectedGeneration: task.generation); remember(task)
         }
         for task in try await tasks() {
