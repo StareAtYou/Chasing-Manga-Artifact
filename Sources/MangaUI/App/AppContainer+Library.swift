@@ -53,7 +53,7 @@ extension AppContainer {
         await perform {
             let sourceWorks = try await store.sourceWorks(for: workID)
             let ids = Set(sourceWorks.map(\.id))
-            if !preparationSourceWorkIDs.isDisjoint(with: ids) { cancelPreparation() }
+            cancelPreparation(sourceWorkIDs: ids)
             try await downloads.deleteDownloaded(sourceWorkIDs: ids)
             for source in sourceWorks { try await updates.setFollowed(false, sourceWorkID: source.id) }
             try await store.setOnShelf(false, workID: workID); try await refresh()

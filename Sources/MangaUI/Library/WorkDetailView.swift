@@ -20,7 +20,7 @@ struct WorkDetailView: View {
                     CoverView(url: primary?.coverURL ?? work.coverURL, sourceWork: primary)
                     VStack(alignment: .leading, spacing: 12) {
                         Text(work.title).font(.title2.bold()); if let primary, !primary.author.isEmpty { Text(primary.author).foregroundStyle(.secondary) }
-                        Text("\(sources.count) 个关联来源 · 自行选择阅读").font(.subheadline).foregroundStyle(.secondary)
+                        Text("\(sources.count) 个关联来源 · 点击来源卡片阅读").font(.subheadline).foregroundStyle(.secondary)
                         Button(work.isOnShelf == false ? "加入书架" : "移出书架") {
                             if work.isOnShelf == false, let id = primary?.id { Task { await app.addToShelf(workID, sourceWorkID: id); await reload() } }
                             else { showRemoval = true }
@@ -50,26 +50,37 @@ struct WorkDetailView: View {
     }
     private func sourceCard(_ source: SourceWork) -> some View {
         let progress = app.history.first { $0.sourceWorkID == source.id }
-        let online = app.sourceList.contains { $0.id == source.id.sourceID && $0.enabled }
+        let online = app.sourceList.contains { $0.id == source.id.sourceID && $0.enabled && !$0.removed }
         return VStack(alignment: .leading, spacing: 12) {
-            HStack { SourceBadge(name: app.sourceName(source.id.sourceID)); if source.id == work?.preferredSourceWorkID { Text("上次选择").font(.caption).foregroundStyle(.secondary) }; Spacer(); Text("\(counts[source.id] ?? 0) 章").font(.caption).foregroundStyle(.secondary) }
-            Text(source.title).font(.headline)
-            if !source.latestChapter.isEmpty { Text("最新：\(source.latestChapter)").font(.subheadline).foregroundStyle(.secondary) }
-            if let date = source.checkedAt { Text("检查于 \(date.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary) }
+            VStack(alignment: .leading, spacing: 12) {
+                HStack { SourceBadge(name: app.sourceName(source.id.sourceID)); if source.id == work?.preferredSourceWorkID { Text("当前来源").font(.caption).foregroundStyle(.secondary) }; Spacer(); Text("\(counts[source.id] ?? 0) 章").font(.caption).foregroundStyle(.secondary) }
+                Text(source.title).font(.headline)
+                if !source.latestChapter.isEmpty { Text("最新：\(source.latestChapter)").font(.subheadline).foregroundStyle(.secondary) }
+                if let date = source.checkedAt { Text("检查于 \(date.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary) }
+                if let progress { Text("继续阅读：\(app.chapterTitle(progress.chapterID))").font(.subheadline).foregroundStyle(.teal) }
+                else { Label("开始阅读", systemImage: "book").font(.subheadline).foregroundStyle(.teal) }
+            }.allowsHitTesting(false)
             HStack {
-                Button("选择此来源") { Task { await app.chooseSource(source.id, for: workID) } }.buttonStyle(.borderedProminent)
-                if let progress { Button("继续阅读") { Task { await app.resume(progress) } }.buttonStyle(.bordered) }
+                Button { Task { await app.chooseSource(source.id, for: workID) } } label: { Label("章节目录", systemImage: "list.bullet") }.buttonStyle(.bordered)
                 Spacer(minLength: 0)
             }
             Button {
                 app.startWholeDownload(source.id); app.presentDownloads(for: workID)
             } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
-                .buttonStyle(.bordered).disabled(!online || app.preparingBatch)
+                .buttonStyle(.bordered).disabled(!online || app.isPreparingDownloads(for: source.id))
                 .accessibilityIdentifier("download-whole-work")
             Toggle("关注这个来源的更新", isOn: Binding(get: { followed.contains(source.id) }, set: { value in Task { await app.perform { try await app.updates.setFollowed(value, sourceWorkID: source.id); if value { followed.insert(source.id) } else { followed.remove(source.id) } } } })).toggleStyle(.switch)
             if sources.count > 1 { Button("解除关联") { Task { await app.perform { try await app.associations.unlink(source.id, from: workID); try await app.refresh() }; await reload() } }.font(.caption) }
-            if !online { Label("来源已停用或删除，已下载章节仍可离线阅读", systemImage: "wifi.slash").font(.caption).foregroundStyle(.secondary) }
-        }.padding(18).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 14))
+            if !online { Label("来源已停用或删除，已下载章节仍可离线阅读", systemImage: "wifi.slash").font(.caption).foregroundStyle(.secondary).allowsHitTesting(false) }
+        }.padding(18).background {
+            Button { Task { await app.openSource(source.id, for: workID); await reload() } } label: {
+                RoundedRectangle(cornerRadius: 14).fill(.quaternary.opacity(0.5)).contentShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+            .disabled(app.openingResults.contains(source.id))
+            .accessibilityLabel("\(progress == nil ? "开始阅读" : "继续阅读") \(source.title) · \(app.sourceName(source.id.sourceID))")
+            .accessibilityIdentifier("read-source-card")
+        }
     }
     private func reload() async {
         await app.perform {

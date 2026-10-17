@@ -1,0 +1,10 @@
+#if canImport(Testing)
+import Testing
+import MangaChecksSupport
+@Suite struct TransferPerformanceTests {
+    @Test(arguments: transferPerformanceChecks) func contract(_ check: Check) async throws { try await check.body() }
+}
+@Suite struct SourceReadingTests {
+    @Test(arguments: sourceReadingChecks) func contract(_ check: Check) async throws { try await check.body() }
+}
+#endif

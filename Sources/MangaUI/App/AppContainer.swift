@@ -32,7 +32,6 @@ public enum AppSection: String, CaseIterable, Identifiable {
     public var recommendationLoading = Set<SourceID>()
     public var recommendationErrors: [SourceID: String] = [:]
     public var genrePreviews: [SourceID: [CatalogSection]] = [:]
-    public var preparationSourceWorkIDs = Set<SourceWorkID>()
     public var updateStatuses: [UpdateCheckStatus] = []
     public var updateList: [UpdateObservation] = []
     public var history: [ReadingProgress] = []
@@ -50,17 +49,20 @@ public enum AppSection: String, CaseIterable, Identifiable {
     public var searchErrors: [SourceID: String] = [:]
     public var searching = false
     public var preparingChapters = Set<ChapterID>()
-    public var preparingBatch = false
-    public var preparationFailure: String?
-    public var preparationWorkTitle: String?
-    public var preparationExisting = 0
-    public var preparationCancelled = false
-    public var preparationSkipped = 0
-    public var preparationTotal = 0
-    public var preparationFinished = 0
-    public var preparationErrors: [ChapterID: String] = [:]
-    public var preparationChapterTitles: [ChapterID: String] = [:]
-    @ObservationIgnored var batchTask: Task<Void, Never>?
+    public var downloadPreparations: [SourceWorkID: DownloadPreparationState] = [:]
+    @ObservationIgnored var preparationTasks: [SourceWorkID: Task<Void, Never>] = [:]
+    @ObservationIgnored let preparationLimiter = DownloadPreparationLimiter(limit: 4)
+    public var preparingBatch: Bool { downloadPreparations.values.contains { $0.isPreparing } }
+    public var preparationSourceWorkIDs: Set<SourceWorkID> { Set(downloadPreparations.values.filter(\.isPreparing).map(\.sourceWorkID)) }
+    public var preparationFailure: String? { downloadPreparations.values.compactMap(\.failure).first }
+    public var preparationWorkTitle: String? { downloadPreparations.values.compactMap(\.workTitle).first }
+    public var preparationExisting: Int { downloadPreparations.values.reduce(0) { $0 + $1.existing } }
+    public var preparationCancelled: Bool { downloadPreparations.values.contains { $0.cancelled } }
+    public var preparationSkipped: Int { downloadPreparations.values.reduce(0) { $0 + $1.skipped } }
+    public var preparationTotal: Int { downloadPreparations.values.reduce(0) { $0 + $1.total } }
+    public var preparationFinished: Int { downloadPreparations.values.reduce(0) { $0 + $1.finished } }
+    public var preparationErrors: [ChapterID: String] { downloadPreparations.values.reduce(into: [:]) { $0.merge($1.errors) { _, latest in latest } } }
+    public var preparationChapterTitles: [ChapterID: String] { downloadPreparations.values.reduce(into: [:]) { $0.merge($1.chapterTitles) { _, latest in latest } } }
     public var openingResults = Set<SourceWorkID>()
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var queryID = UUID()
@@ -156,6 +158,7 @@ public enum AppSection: String, CaseIterable, Identifiable {
     private func storeSelection(_ item: DetectedWork) async throws {
         try await store.save(sourceWork: item.work, chapters: item.chapters)
         let grouped = try await store.createWork(from: item.work.id, onShelf: false)
+        try await store.setPreferredSource(item.work.id, for: grouped.id)
         path.append(.work(grouped.id)); try await refresh()
     }
     public func addToShelf(_ workID: WorkID, sourceWorkID: SourceWorkID) async { await perform { try await store.setPreferredSource(sourceWorkID, for: workID); try await store.setOnShelf(true, workID: workID); try await updates.setFollowed(true, sourceWorkID: sourceWorkID); _ = await updates.check(sourceWorkIDs: [sourceWorkID]); try await refresh() } }

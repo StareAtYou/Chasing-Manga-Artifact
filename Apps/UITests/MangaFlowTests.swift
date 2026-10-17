@@ -1,11 +1,18 @@
 import XCTest
 final class MangaFlowTests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
-    @MainActor func testChooseSourceAndReaderModes() throws {
+    @MainActor func testSourceCardOpensReaderAndReaderModes() throws {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
         let work = app.buttons["打开 原创样本"].firstMatch; XCTAssertTrue(work.waitForExistence(timeout: 15)); activate(work)
-        let source = app.buttons["选择此来源"].firstMatch; XCTAssertTrue(source.waitForExistence(timeout: 10)); activate(source)
-        let chapter = app.buttons["chapter-0"]; XCTAssertTrue(chapter.waitForExistence(timeout: 10)); activate(chapter)
+        XCTAssertFalse(app.buttons["选择此来源"].exists)
+        let source = app.buttons["read-source-card"].firstMatch; XCTAssertTrue(source.waitForExistence(timeout: 10))
+        // Tap the card's metadata area, away from the embedded controls.
+        let cardBackground = source.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08))
+        #if os(macOS)
+        cardBackground.click()
+        #else
+        cardBackground.tap()
+        #endif
         waitUntilReady(app)
         chooseMode("逐页阅读", app: app); waitUntilReady(app)
         // Choosing the already active mode must not freeze readiness/progress.
@@ -32,7 +39,7 @@ final class MangaFlowTests: XCTestCase {
     @MainActor func testContinuousChapterScroll() throws {
         let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
         let work = app.buttons["打开 原创样本"].firstMatch; XCTAssertTrue(work.waitForExistence(timeout: 15)); activate(work)
-        let source = app.buttons["选择此来源"].firstMatch; XCTAssertTrue(source.waitForExistence(timeout: 10)); activate(source)
+        let source = app.buttons["章节目录"].firstMatch; XCTAssertTrue(source.waitForExistence(timeout: 10)); activate(source)
         let chapter = app.buttons["chapter-1"]; XCTAssertTrue(chapter.waitForExistence(timeout: 10)); activate(chapter)
         waitUntilReady(app)
         let scroll = app.scrollViews["reader-scroll"]; XCTAssertTrue(scroll.waitForExistence(timeout: 10))

@@ -6,10 +6,11 @@ actor WholeDownloadState {
     var restricted = false
     var fails = false
     var blocked = false
+    var blockedAfterFirst = false
     var detailCalls = 0
     var requests:[ChapterID] = []
     var gates:[CheckedContinuation<Void,Never>] = []
-    func configure(restricted:Bool=false,fails:Bool=false,blocked:Bool=false) {self.restricted=restricted;self.fails=fails;self.blocked=blocked}
+    func configure(restricted:Bool=false,fails:Bool=false,blocked:Bool=false,blockedAfterFirst:Bool=false) {self.restricted=restricted;self.fails=fails;self.blocked=blocked;self.blockedAfterFirst=blockedAfterFirst}
     func details() {detailCalls += 1}
     func catalogue(_ work:SourceWork) -> [Chapter] {
         (0..<4).map {index in
@@ -20,12 +21,12 @@ actor WholeDownloadState {
     }
     func read(_ chapter:Chapter) async throws -> [PageResource] {
         requests.append(chapter.id)
-        if blocked {await withCheckedContinuation {gates.append($0)}}
+        if blocked || (blockedAfterFirst && chapter.ordinal > 0) {await withCheckedContinuation {gates.append($0)}}
         try Task.checkCancellation()
         if fails,chapter.ordinal == 2 {throw MangaError.parseMismatch("单章样本故障")}
         return Samples.pages(chapter)
     }
-    func release() {blocked=false;let pending=gates;gates=[];for gate in pending {gate.resume()}}
+    func release() {blocked=false;blockedAfterFirst=false;let pending=gates;gates=[];for gate in pending {gate.resume()}}
 }
 private struct WholeDownloadAdapter:SourceAdapter {
     let state:WholeDownloadState
@@ -36,6 +37,17 @@ private struct WholeDownloadAdapter:SourceAdapter {
     func chapters(work:SourceWork,context:ParserContext) async throws -> [Chapter] {await state.catalogue(work)}
     func pages(chapter:Chapter,context:ParserContext) async throws -> [PageResource] {try await state.read(chapter)}
 }
+private struct MultiWorkDownloadAdapter:SourceAdapter {
+    let blocked:WholeDownloadState
+    let other:WholeDownloadState
+    let id="multi-work-download-fixture"
+    let version=1
+    let capabilities:SourceCapabilities = [.readable]
+    private func state(_ sourceID:SourceID)->WholeDownloadState {sourceID == Samples.sourceA.id ? blocked : other}
+    func details(url:URL,context:ParserContext) async throws -> SourceWork {await state(context.source.id).details();return Samples.work(context.source)}
+    func chapters(work:SourceWork,context:ParserContext) async throws -> [Chapter] {await state(context.source.id).catalogue(work)}
+    func pages(chapter:Chapter,context:ParserContext) async throws -> [PageResource] {try await state(context.source.id).read(chapter)}
+}
 func wholeFixture(_ root:URL,state:WholeDownloadState,transfer:(any PageTransferring)?=nil) async throws -> (AppContainer,SourceWork) {
     let app=try await MainActor.run {try AppContainer(root:root,client:FixtureHTTPClient([:]),registry:ParserRegistry(adapters:[WholeDownloadAdapter(state:state)]),transfer:transfer ?? FixtureTransfer(data:try generatedPNG()))}
     var source=Samples.sourceA;source.binding=ParserBinding(parserID:"whole-download-fixture")
@@ -45,6 +57,17 @@ func wholeFixture(_ root:URL,state:WholeDownloadState,transfer:(any PageTransfer
     await app.start(registerBuiltins:false)
     return (app,work)
 }
+private func multiWholeFixture(_ root:URL,blocked:WholeDownloadState,other:WholeDownloadState) async throws -> (AppContainer,SourceWork,SourceWork) {
+    let app=try await MainActor.run {try AppContainer(root:root,client:FixtureHTTPClient([:]),registry:ParserRegistry(adapters:[MultiWorkDownloadAdapter(blocked:blocked,other:other)]),transfer:FixtureTransfer(data:try generatedPNG()))}
+    var sourceA=Samples.sourceA;sourceA.binding=ParserBinding(parserID:"multi-work-download-fixture")
+    var sourceB=Samples.sourceB;sourceB.binding=ParserBinding(parserID:"multi-work-download-fixture")
+    try await app.store.save(source:sourceA);try await app.store.save(source:sourceB)
+    let workA=Samples.work(sourceA),workB=Samples.work(sourceB)
+    try await app.store.save(sourceWork:workA,chapters:[Samples.chapter(workA)])
+    try await app.store.save(sourceWork:workB,chapters:[Samples.chapter(workB)])
+    await app.start(registerBuiltins:false)
+    return (app,workA,workB)
+}
 private func settleWhole(_ app:AppContainer) async throws {
     for _ in 0..<100_000 {
         if await !app.preparingBatch {return}
@@ -53,6 +76,85 @@ private func settleWhole(_ app:AppContainer) async throws {
     throw CheckFailure(description:"Whole work preparation did not settle")
 }
 public let wholeWorkDownloadChecks:[Check] = [
+    Check("WholeWorkDownloadTests.firstQueuedChapterPublishesShelfBeforePreparationFinishes") {
+        let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
+        let state=WholeDownloadState();await state.configure(blockedAfterFirst:true)
+        let (app,work)=try await wholeFixture(root,state:state)
+        let grouped=try await app.store.createWork(from:work.id,onShelf:false)
+        try await app.refresh()
+        try expect(await app.library.isEmpty,"Discovery work starts outside the shelf")
+        await app.startWholeDownload(work.id)
+        for _ in 0..<100_000 {
+            let visible=await MainActor.run {app.library.contains {$0.id == grouped.id} && app.workSourceIDs[grouped.id]?.contains(work.id) == true}
+            if visible {break}
+            await Task.yield()
+        }
+        let duringPreparation=await MainActor.run {
+            app.isPreparingDownloads(for:work.id) && app.library.contains {$0.id == grouped.id}
+                && app.workSourceIDs[grouped.id]?.contains(work.id) == true
+        }
+        let queuedBeforeRelease=try await app.downloads.tasks().count
+        await state.release();try await settleWhole(app)
+        let tasks=try await app.downloads.tasks()
+        for task in tasks {_ = try await waitForDownload(app.downloads,task.id)}
+        await app.updateScheduler.stop()
+        try expect(queuedBeforeRelease == 1,"Hold later chapter parsing while the first chapter has entered the real queue")
+        try expect(duringPreparation,"First queued chapter must publish the discovery work and its source IDs to the shelf before the long preparation finishes")
+        try expect(tasks.count == 4,"Early shelf publication preserves the rest of whole-work preparation")
+    },
+    Check("WholeWorkDownloadTests.blockedWorkDoesNotPreventAnotherWorkPreparation") {
+        let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
+        let blocked=WholeDownloadState();await blocked.configure(blocked:true)
+        let other=WholeDownloadState()
+        let (app,workA,workB)=try await multiWholeFixture(root,blocked:blocked,other:other)
+        await app.startWholeDownload(workA.id)
+        for _ in 0..<100_000 {if await !blocked.requests.isEmpty {break};await Task.yield()}
+        await app.queueWholeWork(workB.id)
+        let otherTasks=try await app.downloads.tasks().filter {$0.chapter.id.sourceWorkID == workB.id}
+        let independentStatus=await MainActor.run {
+            app.isPreparingDownloads(for:workA.id) && !app.isPreparingDownloads(for:workB.id)
+                && app.downloadPreparations[workA.id]?.finished == 0 && app.downloadPreparations[workB.id]?.finished == 4
+        }
+        await app.cancelPreparation();await blocked.release();try await settleWhole(app)
+        for task in try await app.downloads.tasks() {_ = try await waitForDownload(app.downloads,task.id)}
+        await app.updateScheduler.stop()
+        try expect(otherTasks.count == 4,"A stalled work must not prevent another work from preparing its complete download queue")
+        try expect(independentStatus,"A second work keeps its own progress without resetting or finishing the stalled work's status")
+    },
+    Check("WholeWorkDownloadTests.removingOneWorkCancelsOnlyItsPreparation") {
+        let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
+        let stateA=WholeDownloadState(),stateB=WholeDownloadState()
+        await stateA.configure(blocked:true);await stateB.configure(blocked:true)
+        let (app,workA,workB)=try await multiWholeFixture(root,blocked:stateA,other:stateB)
+        let groupedA=try await app.store.createWork(from:workA.id)
+        await MainActor.run { app.startWholeDownload(workA.id);app.startWholeDownload(workB.id) }
+        for _ in 0..<100_000 {
+            let startedA=await !stateA.requests.isEmpty,startedB=await !stateB.requests.isEmpty
+            if startedA && startedB {break}
+            await Task.yield()
+        }
+        await app.removeFromShelf(groupedA.id)
+        let otherUncancelled=await MainActor.run {app.downloadPreparations[workB.id]?.cancelled == false}
+        await stateA.release();await stateB.release();try await settleWhole(app)
+        let tasks=try await app.downloads.tasks()
+        let status=await MainActor.run {(app.downloadPreparations[workA.id]?.cancelled,app.downloadPreparations[workB.id]?.finished)}
+        for task in tasks {_ = try await waitForDownload(app.downloads,task.id)}
+        await app.updateScheduler.stop()
+        try expect(otherUncancelled && tasks.count == 4 && tasks.allSatisfy{$0.chapter.id.sourceWorkID == workB.id},"Removing a shelf work cancels only its own suspended preparation and permits the other work to finish")
+        try expect(status.0 == true && status.1 == 4,"Cancellation and completed chapter counts remain scoped to each work")
+    },
+    Check("WholeWorkDownloadTests.preparesTwoChaptersConcurrentlyWithBoundedFanout") {
+        let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
+        let state=WholeDownloadState();await state.configure(blocked:true)
+        let (app,work)=try await wholeFixture(root,state:state)
+        await app.startWholeDownload(work.id)
+        for _ in 0..<100_000 {if await state.requests.count >= 2 {break};await Task.yield()}
+        let inFlight=await state.requests.count
+        await app.cancelPreparation();await state.release();try await settleWhole(app)
+        await app.updateScheduler.stop()
+        try expect(inFlight == 2,"Prepare two chapter page lists concurrently and keep later chapters pending while both slots are occupied")
+        try expect(try await app.downloads.tasks().isEmpty,"Cancelled concurrent chapter preparation cannot enqueue stale results")
+    },
     Check("WholeWorkDownloadTests.refreshesCompleteDirectoryAndCreatesOfflineChapters") {
         let root=try Samples.temporaryDirectory();defer {try? FileManager.default.removeItem(at:root)}
         let state=WholeDownloadState();let (app,work)=try await wholeFixture(root,state:state)

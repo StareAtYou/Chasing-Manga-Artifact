@@ -56,7 +56,7 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
         try FileManager.default.createDirectory(at: recoveryDirectory, withIntermediateDirectories: true)
         super.init()
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.identifier)
-        configuration.isDiscretionary = false; configuration.httpMaximumConnectionsPerHost = 2
+        configuration.isDiscretionary = false; configuration.httpMaximumConnectionsPerHost = 4
         configuration.httpCookieStorage = nil; configuration.urlCredentialStorage = nil; configuration.httpShouldSetCookies = false
         configuration.timeoutIntervalForRequest = 120
         #if os(iOS)
@@ -86,7 +86,7 @@ public final class BackgroundTransfer: NSObject, PageTransferring, URLSessionDow
             if let referer = resource.referer { request.setValue(referer.absoluteString, forHTTPHeaderField: "Referer") }
             for (key, value) in await contexts.headers(for: resource.accessContextID, sourceID: sourceID, url: resource.url) { request.setValue(value, forHTTPHeaderField: key) }
             let tasks = await session.allTasks
-            let existing = tasks.first { task in Self.identity(task)?.key == identity.key }
+            let existing = tasks.first { task in Self.identity(task)?.key == identity.key && task.state != .canceling && task.state != .completed }
             let native = existing ?? session.downloadTask(with: request)
             if existing == nil { native.taskDescription = String(decoding: try JSONEncoder().encode(identity), as: UTF8.self) }
             let result = try await withTaskCancellationHandler {

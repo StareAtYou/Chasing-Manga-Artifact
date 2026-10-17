@@ -34,6 +34,18 @@ actor CancellableSleeper: RequestSleeper {
     func sleep(seconds: Double) async throws { started = true; try await Task.sleep(for: .seconds(30)) }
 }
 public let httpClientChecks: [Check] = [
+    Check("HTTPClientTests.downloadBudgetLeavesRoomForVisibleReading") {
+        let transport = BlockingTransport(); let client = URLSessionHTTPClient(transport: transport)
+        let jobs = (0..<3).map { index in Task { _ = try await client.send(ResourceRequest(url: URL(string: "https://a.test/download/\(index)")!), sourceID: Samples.sourceA.id, priority: .download) } }
+        for _ in 0..<40 { if await transport.paths.count >= 3 { break }; try await Task.sleep(for: .milliseconds(1)) }
+        let reading = Task { _ = try await client.send(ResourceRequest(url: URL(string: "https://a.test/visible")!), sourceID: Samples.sourceA.id, priority: .reading) }
+        for _ in 0..<40 { if await transport.paths.count >= 4 { break }; try await Task.sleep(for: .milliseconds(1)) }
+        let observed = await transport.paths
+        for job in jobs { job.cancel() }; reading.cancel()
+        for _ in observed { await transport.release() }
+        for job in jobs { _ = try? await job.value }; _ = try? await reading.value
+        try expect(observed.count == 4 && observed.contains("/visible"), "Three downloads can overlap while a visible page still starts without waiting for them")
+    },
     Check("HTTPClientTests.limitedConcurrencyAndPriority") {
         let transport = SequenceTransport([])
         let client = URLSessionHTTPClient(transport: transport)
@@ -44,7 +56,7 @@ public let httpClientChecks: [Check] = [
             try await group.waitForAll()
         }
         let peak = await transport.maximum
-        try expect(peak <= 2 && peak > 0, "Real scheduler must enforce per-source request limit")
+        try expect(peak <= 4 && peak > 0, "Real scheduler must enforce per-source request limit")
         let global = SequenceTransport([]); let shared = URLSessionHTTPClient(transport: global)
         try await withThrowingTaskGroup(of: Void.self) { group in
             for i in 0..<40 { group.addTask { _ = try await shared.send(ResourceRequest(url: URL(string: "https://host\(i).test/")!), sourceID: SourceID(), priority: .search) } }

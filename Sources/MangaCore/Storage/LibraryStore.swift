@@ -148,6 +148,23 @@ public actor LibraryStore {
         guard let source = try source(id: snapshot.sourceID), source.enabled, !source.removed, source.revision == snapshot.sourceRevision else { throw CancellationError() }
         try saveRecord(kind: "recommendation-cache", key: source.id.key, value: snapshot)
     }
+    public func downloadTask(chapterID: ChapterID) throws -> DownloadTask? {
+        try records(kind: "download", parent: chapterID.key, as: DownloadTask.self).first { $0.state != .cancelled }
+    }
+    public func pauseDownloads(taskIDs: Set<UUID>) throws {
+        try db.transaction {
+            for id in taskIDs {
+                guard var task = try downloadTask(id: id), [.queued, .running].contains(task.state) else { continue }
+                task.state = .paused; task.generation = UUID(); task.updatedAt = Date()
+                try saveRecord(kind: "download", key: id.uuidString, parent: task.chapter.id.key, value: task)
+            }
+        }
+    }
+    public func deleteDownloads(taskIDs: Set<UUID>) throws {
+        try db.transaction {
+            for id in taskIDs { try deleteRecord(kind: "download", key: id.uuidString); try deleteRecord(kind: "offline-manifest", key: id.uuidString) }
+        }
+    }
     public func downloadTask(id: UUID) throws -> DownloadTask? { try record(kind: "download", key: id.uuidString, as: DownloadTask.self) }
     public func downloadPreparationEpoch(for id: SourceWorkID) throws -> UUID {
         if let epoch = try record(kind: "download-epoch", key: id.key, as: UUID.self) { return epoch }

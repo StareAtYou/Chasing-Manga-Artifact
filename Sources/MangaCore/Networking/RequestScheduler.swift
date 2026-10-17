@@ -13,10 +13,11 @@ public actor RequestScheduler {
         let continuation: CheckedContinuation<UUID, Error>
     }
     private var waiting: [Waiting] = []
-    private var active: [UUID: SourceID] = [:]
+    private struct Active { let source: SourceID; let priority: RequestPriority }
+    private var active: [UUID: Active] = [:]
     private let globalLimit: Int
     private let sourceLimit: Int
-    public init(globalLimit: Int = 8, sourceLimit: Int = 2) {
+    public init(globalLimit: Int = 8, sourceLimit: Int = 4) {
         self.globalLimit = max(1, globalLimit); self.sourceLimit = max(1, sourceLimit)
     }
     public func acquire(sourceID: SourceID, priority: RequestPriority) async throws -> UUID {
@@ -41,11 +42,20 @@ public actor RequestScheduler {
     private func drain() {
         while active.count < globalLimit {
             let eligible = waiting.indices.filter { index in
-                active.values.filter { $0 == waiting[index].source }.count < sourceLimit
+                let item = waiting[index]
+                let source = active.values.filter { $0.source == item.source }
+                guard source.count < sourceLimit else { return false }
+                if item.priority >= .download {
+                    // Background images use more parallelism without occupying every
+                    // slot needed by a newly visible page or an interactive search.
+                    return active.values.filter { $0.priority >= .download }.count < max(1, globalLimit - 2)
+                        && source.filter { $0.priority >= .download }.count < max(1, sourceLimit - 1)
+                }
+                return true
             }
             guard let index = eligible.min(by: { waiting[$0].priority < waiting[$1].priority }) else { return }
             let item = waiting.remove(at: index)
-            active[item.id] = item.source
+            active[item.id] = Active(source: item.source, priority: item.priority)
             item.continuation.resume(returning: item.id)
         }
     }

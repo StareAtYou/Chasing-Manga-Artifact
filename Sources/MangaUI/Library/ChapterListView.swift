@@ -19,11 +19,11 @@ struct ChapterListView: View {
             Button {
                 app.startWholeDownload(sourceWorkID); app.presentDownloads()
             } label: { Label("下载整部漫画", systemImage: "arrow.down.circle") }
-                .buttonStyle(.bordered).disabled(loading || work == nil || app.preparingBatch || !app.sourceList.contains { $0.id == sourceWorkID.sourceID && $0.enabled })
+                .buttonStyle(.bordered).disabled(loading || work == nil || app.isPreparingDownloads(for: sourceWorkID) || !app.sourceList.contains { $0.id == sourceWorkID.sourceID && $0.enabled })
                 .accessibilityIdentifier("download-whole-work")
             HStack { TextField("筛选章节名称", text: $query).textFieldStyle(.roundedBorder); Toggle("最新在前", isOn: $newestFirst).toggleStyle(.button) }
-            if selecting { HStack { Button("选择当前列表") { selection.formUnion(visible.filter { $0.access == .available }.map(\.id)) }; Button("清空") { selection.removeAll() }; Spacer(); Button("下载所选 \(selection.count) 章") { app.startBatch(chapters.filter { selection.contains($0.id) }); selecting = false; selection.removeAll() }.disabled(selection.isEmpty || app.preparingBatch) }.buttonStyle(.bordered) }
-            if app.preparingBatch { HStack { ProgressView(); Text("加入下载队列：\(app.preparationFinished) / \(app.preparationTotal)"); Button("取消准备") { app.cancelPreparation() } }.font(.caption) }
+            if selecting { HStack { Button("选择当前列表") { selection.formUnion(visible.filter { $0.access == .available }.map(\.id)) }; Button("清空") { selection.removeAll() }; Spacer(); Button("下载所选 \(selection.count) 章") { app.startBatch(chapters.filter { selection.contains($0.id) }); selecting = false; selection.removeAll() }.disabled(selection.isEmpty || app.isPreparingDownloads(for: sourceWorkID)) }.buttonStyle(.bordered) }
+            if let preparation = app.downloadPreparations[sourceWorkID], preparation.isPreparing { HStack { ProgressView(); Text("加入下载队列：\(preparation.finished) / \(preparation.total)"); Button("取消准备") { app.cancelPreparation(sourceWorkIDs: [sourceWorkID]) }.disabled(preparation.cancelled) }.font(.caption) }
             if !resumeCandidates.isEmpty { Text("其他来源的续读候选 · 请自行确认").font(.headline); ForEach(chapters.filter { resumeCandidates.contains($0.id) }) { chapter in Button(chapter.title) { app.path.append(.reader(chapter.id)) }.buttonStyle(.borderless) } }
             if loading { ProgressView("读取章节目录…") }
             ForEach(visible) { chapter in
