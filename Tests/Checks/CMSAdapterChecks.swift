@@ -107,6 +107,21 @@ public let cmsAdapterChecks: [Check] = [
         try expect(result.channels.contains{$0.genre=="国漫"} && result.channels.contains{$0.genre=="热血"},"Region/category navigation must survive repeated More links to the same URL")
         try expect(!result.channels.contains{$0.genre?.contains("更多")==true},"Arrow-decorated navigation labels are not categories")
     },
+    Check("CMSSourceTests.boundBuiltinSearchSurvivesFailedProbe") {
+        let root = try Samples.temporaryDirectory(); defer { try? FileManager.default.removeItem(at: root) }
+        let source = BuiltinSources.candidates().first { $0.baseURL.host == "www.fengchemh.com" }!
+        let work = source.baseURL.appendingPathComponent("comic/hero"); let first = source.baseURL.appendingPathComponent("chapter/one.html"); let last = source.baseURL.appendingPathComponent("chapter/two.html")
+        let image = URL(string: "https://images.test/2.webp")!; let encrypted = URL(string: "https://img1.baipiaoguai.org/book/content/1.bin")!; let vector = try cmsImageVector()
+        let client = FixtureHTTPClient([source.baseURL.absoluteString: textResponse(fengcheHome, source.baseURL), work.absoluteString: textResponse(fengcheWork, work), first.absoluteString: textResponse(try fixtureText("fengche-cms-encrypted"), first), last.absoluteString: textResponse(try fixtureText("fengche-cms-encrypted"), last), encrypted.absoluteString: ResourceResponse(data: vector.cipher, finalURL: encrypted, statusCode: 200), image.absoluteString: ResourceResponse(data: vector.plain, finalURL: image, statusCode: 200)])
+        let store = try LibraryStore(databaseURL: root.appendingPathComponent("db.sqlite")); try await store.save(source: source)
+        let service = SourceService(store: store, registry: ParserRegistry(adapters: [CMSMangaAdapter(site: .fengche)]), client: client, verifier: ImageVerifier())
+        let report = try await service.retest(sourceID: source.id, samples: [work])
+        try expect(report.binding?.parserID == "fengche-cms", "Real source detection must commit its valid reader binding")
+        let inspection = try await service.inspectCatalog(sourceID: source.id)
+        let latest = try await store.source(id: source.id)!
+        try expect(inspection.errors["search"] != nil && !latest.capabilities.contains(.search), "Reproduce a bound reader with a failed search probe")
+        try expect(SearchScope.source(source.id).sourceIDs(in: [latest]) == [source.id], "Known built-in search remains selectable after successful binding and a failed probe")
+    },
     Check("CMSSourceTests.customSourceDetectionValidatesEncodedImages") {
         let source=cmsSource("www.fengchemh.com");let work=source.baseURL.appendingPathComponent("comic/hero");let first=source.baseURL.appendingPathComponent("chapter/one.html");let last=source.baseURL.appendingPathComponent("chapter/two.html");let encrypted=URL(string:"https://img1.baipiaoguai.org/book/content/1.bin")!;let direct=URL(string:"https://images.test/2.webp")!;let vector=try cmsImageVector()
         let client=FixtureHTTPClient([source.baseURL.absoluteString:textResponse(fengcheHome,source.baseURL),work.absoluteString:textResponse(fengcheWork,work),first.absoluteString:textResponse(try fixtureText("fengche-cms-encrypted"),first),last.absoluteString:textResponse(try fixtureText("fengche-cms-encrypted"),last),encrypted.absoluteString:ResourceResponse(data:vector.cipher,finalURL:encrypted,statusCode:200),direct.absoluteString:ResourceResponse(data:vector.plain,finalURL:direct,statusCode:200)])

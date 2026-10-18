@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-MANGA_VERSION="${MANGA_VERSION:-0.3.8}"
+MANGA_VERSION="${MANGA_VERSION:-0.3.9}"
 MANGA_OUTPUT="${MANGA_OUTPUT:-$PWD/release}"
 MANGA_ARCH="${MANGA_ARCH:-$(uname -m)}"
 if [[ "$MANGA_ARCH" == universal ]]; then
@@ -30,7 +30,7 @@ import plistlib, sys
 from pathlib import Path
 app, version = Path(sys.argv[1]), sys.argv[2]
 info = plistlib.loads(Path('Apps/macOS/Info.plist').read_bytes())
-info.update(CFBundleExecutable='ChasingMangaApp', CFBundleIdentifier='com.chasingmanga.local.mac', CFBundleName='ChasingManga', CFBundleDisplayName='追漫', CFBundleShortVersionString=version, CFBundleVersion='16', LSMinimumSystemVersion='14.0', CFBundleIconFile='AppIcon', NSHighResolutionCapable=True)
+info.update(CFBundleExecutable='ChasingMangaApp', CFBundleIdentifier='com.chasingmanga.local.mac', CFBundleName='ChasingManga', CFBundleDisplayName='追漫', CFBundleShortVersionString=version, CFBundleVersion='17', LSMinimumSystemVersion='14.0', CFBundleIconFile='AppIcon', NSHighResolutionCapable=True)
 (app/'Contents/Info.plist').write_bytes(plistlib.dumps(info))
 PY
 swift scripts/make-app-icon.swift "$MANGA_APP/Contents/Resources/AppIcon.icns"

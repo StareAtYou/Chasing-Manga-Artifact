@@ -88,6 +88,39 @@ final class MangaFlowTests: XCTestCase {
         let offline = app.buttons["离线阅读"].firstMatch; XCTAssertTrue(offline.waitForExistence(timeout: 15))
         activate(offline); waitUntilReady(app)
     }
+    @MainActor func testDiscoverySearchScope() throws {
+        let app = XCUIApplication(); app.launchArguments = ["--ui-testing"]; app.launch()
+        #if os(macOS)
+        let discovery = app.outlines.staticTexts["发现"].firstMatch
+        XCTAssertTrue(discovery.waitForExistence(timeout: 15)); discovery.click()
+        #else
+        let discovery = app.tabBars.buttons["发现"]
+        XCTAssertTrue(discovery.waitForExistence(timeout: 15)); discovery.tap()
+        #endif
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 10)); activate(field); field.typeText("demo")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "搜索结果 · 6")).firstMatch.waitForExistence(timeout: 10))
+        chooseSearchScope("本地样本源 2", app: app)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "搜索结果 · 3")).firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["打开 原创样本 · 本地样本源 1"].exists)
+        XCTAssertTrue(app.buttons["打开 原创样本 · 本地样本源 2"].exists)
+        chooseSearchScope("全部漫画源", app: app)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "搜索结果 · 6")).firstMatch.waitForExistence(timeout: 10))
+        let screenshot = XCTAttachment(screenshot: app.screenshot()); screenshot.lifetime = .keepAlways; add(screenshot)
+    }
+    @MainActor private func chooseSearchScope(_ title: String, app: XCUIApplication) {
+        #if os(macOS)
+        let menu = app.popUpButtons["discovery.searchScope"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5)); menu.click()
+        let item = app.menuItems[title].firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5)); item.click()
+        #else
+        let menu = app.buttons["discovery.searchScope"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5)); menu.tap()
+        let item = app.buttons[title].firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
+        #endif
+    }
     @MainActor private func waitUntilReady(_ app: XCUIApplication) { XCTAssertTrue(app.staticTexts["reader-ready"].waitForExistence(timeout: 15)) }
     @MainActor private func chooseMode(_ title: String, app: XCUIApplication) {
         #if os(macOS)

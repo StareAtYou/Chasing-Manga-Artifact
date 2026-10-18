@@ -45,6 +45,8 @@ public enum AppSection: String, CaseIterable, Identifiable {
     public var browsingBySource: [SourceID: [SourceWork]] = [:]
     public var catalogLoading = Set<SourceID>()
     public var catalogErrors: [SourceID: [String: MangaError]] = [:]
+    public var discoverySearchScope = SearchScope.all
+    public var discoverySearchSources: [Source] { SearchScope.searchableSources(in: sourceList) }
     public var searchResults: [SourceWork] = []
     public var searchErrors: [SourceID: String] = [:]
     public var searching = false
@@ -163,9 +165,12 @@ public enum AppSection: String, CaseIterable, Identifiable {
     }
     public func addToShelf(_ workID: WorkID, sourceWorkID: SourceWorkID) async { await perform { try await store.setPreferredSource(sourceWorkID, for: workID); try await store.setOnShelf(true, workID: workID); try await updates.setFollowed(true, sourceWorkID: sourceWorkID); _ = await updates.check(sourceWorkIDs: [sourceWorkID]); try await refresh() } }
     public func sourceName(_ id: SourceID) -> String { sourceList.first { $0.id == id }?.name ?? "已删除的来源" }
+    public func searchDiscovery(_ query: String) {
+        searchFor(query, sourceIDs: discoverySearchScope.sourceIDs(in: sourceList))
+    }
     public func searchFor(_ query: String, sourceIDs: [SourceID]) {
         searchTask?.cancel(); queryID = UUID(); let id = queryID; searchResults = []; searchErrors = [:]
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { searching = false; Task { await search.cancel() }; return }
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !sourceIDs.isEmpty else { searching = false; Task { await search.cancel() }; return }
         searching = true
         searchTask = Task { @MainActor in
             do { try await Task.sleep(for: .milliseconds(300)) } catch { return }

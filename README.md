@@ -1,6 +1,6 @@
 # 追漫 · Chasing Manga
 
-Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.8 新增多看漫画、风车漫画的独立适配器，接入推荐分类、作品目录、阅读与离线下载；多看支持国漫分类入口，风车搜索遇到网站验证时需要在来源页面手动完成验证。保留跨源搜索、关联来源、自定义解析器绑定、整部下载、批量清理与纵向双向跨话阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。本次接入与验证范围见 [v0.3.8 记录](docs/duokan-fengche-0.3.8.md)，瓜子来源访问限制见 [v0.3.7 记录](docs/guazi-access-0.3.7.md)，下载提速见 [v0.3.6 记录](docs/ios-download-throughput-0.3.6.md)。
+Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保存自己的书架、历史、下载与设置。v0.3.9 优化发现搜索，可直接选择全部漫画源、单个来源或自定义多源范围；切换范围后自动重新搜索并清除旧结果。保留 v0.3.8 新增的多看漫画、风车漫画适配器；风车搜索遇到网站验证时仍需在来源页面手动完成验证。保留跨源搜索、关联来源、自定义解析器绑定、整部下载、批量清理与纵向双向跨话阅读。兼容 macOS 15.7.7 / iOS 18.5，构建固定使用 Xcode 16.4，不要求升级设备系统。搜索范围说明见 [v0.3.9 记录](docs/search-scope-0.3.9.md)，漫画源接入见 [v0.3.8 记录](docs/duokan-fengche-0.3.8.md)，瓜子来源访问限制见 [v0.3.7 记录](docs/guazi-access-0.3.7.md)，下载提速见 [v0.3.6 记录](docs/ios-download-throughput-0.3.6.md)。
 
 ## 界面展示
 
@@ -38,7 +38,7 @@ Swift / SwiftUI 原生漫画阅读器，支持 iOS 17+ 与 macOS 14+，每端保
 
 ## macOS 直接使用
 
-解压 `ChasingManga-0.3.8-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
+解压 `ChasingManga-0.3.9-macOS-universal.zip`，将 `ChasingManga.app` 拖入 Applications 后打开。兼容 Apple Silicon 与 Intel，最低 macOS 14；本机实际运行验证为 Apple Silicon。当前使用本地临时签名，未做 Developer ID 公证。
 
 自行构建 macOS 包可用 Swift 工具链与 macOS SDK，无需 iOS SDK：
 
