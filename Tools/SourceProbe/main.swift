@@ -24,7 +24,7 @@ func argument(_ name: String) -> String? { guard let index = CommandLine.argumen
 guard CommandLine.arguments.contains("--online"), let sourceName = argument("--source") else {
     print("Usage: swift run SourceProbe --source SOURCE --online --catalog [--genre NAME] OR --work-url URL"); exit(2)
 }
-let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5, "mangabz": 6, "comicfury": 7, "qwantz": 8, "duokan": 9, "fengche": 10][sourceName] ?? -1
+let index = ["manhuazhan": 0, "guazi": 1, "dm5": 2, "mangadex": 3, "xkcd": 4, "baozi": 5, "mangabz": 6, "comicfury": 7, "qwantz": 8, "duokan": 9, "fengche": 10, "77": 11, "haokan": 12, "gugu": 13][sourceName] ?? -1
 guard index >= 0 else { print("Unknown source"); exit(2) }
 let source = BuiltinSources.candidates()[index]
 guard let adapter = BuiltinSources.candidateAdapter(for: source) else { print("Adapter pending"); exit(2) }

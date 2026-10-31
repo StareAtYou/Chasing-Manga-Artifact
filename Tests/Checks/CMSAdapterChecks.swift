@@ -38,7 +38,7 @@ private func cmsPageContext(_ source: Source, _ fixture: String, duokan: Bool) t
 public let cmsAdapterChecks: [Check] = [
     Check("CMSSourceTests.builtinsAppendBothWithoutChangingExistingIdentities") {
         let all = BuiltinSources.candidates()
-        try expect(all.count == 11 && all[9].baseURL.host == "www.duokanmh.com" && all[10].baseURL.host == "www.fengchemh.com", "Both requested sources must be appended")
+        try expect(all.count == 14 && all[9].baseURL.host == "www.duokanmh.com" && all[10].baseURL.host == "www.fengchemh.com", "Both requested sources must be appended")
         for index in 0..<9 { try expect(all[index].id.rawValue == UUID(uuidString: "00000000-0000-0000-0000-" + String(format: "%012d", 100 + index)), "Existing source identities must not move") }
     },
     Check("CMSSourceTests.listingsKeepCoversTitlesAndScope") {
