@@ -34,6 +34,12 @@ public struct CMSMangaAdapter: SourceAdapter {
             headers: ["User-Agent":"Mozilla/5.0", "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"]), sourceID: context.source.id, priority: priority)
         guard HTMLCatalogDiscovery.sameDocument(url, response.finalURL), SourceScope.contains(response.finalURL, in: context.source.baseURL) else { throw MangaError.parseMismatch("页面地址与请求不一致") }
         let doc = try SwiftSoup.parse(response.text, url.absoluteString)
+        if site == .duokan {
+            let status = try doc.select(".chapter-list-empty-tips").text()
+            if status.contains("已下架") {
+                throw MangaError.workUnavailable
+            }
+        }
         do { try HTMLAccessGuard.check(doc); return doc }
         catch MangaError.verificationRequired where url.path == "/search" {
             // Reuse the source browser if the user has completed its verification.
@@ -152,7 +158,7 @@ public struct CMSMangaAdapter: SourceAdapter {
         let imageHost = (payload["images_hosts"] as? [String])?.first
         return try images.enumerated().map { index, raw in
             var value = raw; var encoding: ImageEncoding?
-            if site == .duokan, let imageHost {
+            if site == .duokan, let imageHost, !raw.hasPrefix("https://"), !raw.hasPrefix("http://"), !raw.hasPrefix("//") {
                 if payload["images_base64"] as? Bool == true { value = imageHost.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + Data(raw.utf8).base64EncodedString() }
                 else if !raw.hasPrefix("https://"), !raw.hasPrefix("http://"), !raw.hasPrefix("//") { value = imageHost.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + raw.trimmingCharacters(in: CharacterSet(charactersIn: "/")) }
             }
@@ -161,7 +167,7 @@ public struct CMSMangaAdapter: SourceAdapter {
             }
             guard let image = imageURL(value, relativeTo: chapter.url) else { throw MangaError.parseMismatch("正文包含无效图片地址") }
             let url = image
-            let request = ResourceRequest(url: url, referer: encoding == nil ? chapter.url : nil, headers: ["User-Agent":"Mozilla/5.0"], imageEncoding: encoding)
+            let request = ResourceRequest(url: url, referer: encoding == nil && payload["no_referrer"] as? Bool != true ? chapter.url : nil, headers: ["User-Agent":"Mozilla/5.0"], imageEncoding: encoding)
             return PageResource(id: PageID(chapterID: chapter.id, externalID: String(index + 1)), ordinal: index, request: request)
         }
     }

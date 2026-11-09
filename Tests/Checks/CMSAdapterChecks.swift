@@ -58,11 +58,35 @@ public let cmsAdapterChecks: [Check] = [
             try expect(chapters.map(\.title) == ["第1话","第2话"] && chapters.map(\.ordinal) == [0,1], "Keep the complete ascending chapter list, deduplicate and reject offsite links")
         }
     },
+    Check("CMSSourceTests.duokanRemovedWorkIsNotAParserFailure") {
+        let source = cmsSource("www.duokanmh.com")
+        let url = source.baseURL.appendingPathComponent("manhua/hero")
+        let html = "<div class='comic-detail'><h1 class='title'><span>测试漫画</span></h1></div><div class='chapter-list-empty-tips'>该漫画已下架，请阅读其他作品。</div>"
+        let context = ParserContext(source: source, client: FixtureHTTPClient([url.absoluteString: textResponse(html, url)]))
+        let work = SourceWork(id: SourceWorkID(sourceID: source.id, externalID: "/manhua/hero"), title: "测试漫画", url: url)
+        do { _ = try await cmsAdapter(source).details(url: url, context: context); throw CheckFailure(description: "Removed details accepted") } catch MangaError.workUnavailable { }
+        do { _ = try await cmsAdapter(source).chapters(work: work, context: context); throw CheckFailure(description: "Removed directory treated as parse failure") } catch MangaError.workUnavailable { }
+    },
+    Check("CMSSourceTests.removalWordsOutsideStatusDoNotHideReadableWork") {
+        let source = cmsSource("www.duokanmh.com")
+        let url = source.baseURL.appendingPathComponent("manhua/hero")
+        let context = ParserContext(source: source, client: FixtureHTTPClient([url.absoluteString: textResponse(duokanWork + "<div>该漫画已下架，其他作品广告</div>", url)]))
+        let work = try await cmsAdapter(source).details(url: url, context: context)
+        let chapters = try await cmsAdapter(source).chapters(work: work, context: context)
+        try expect(chapters.count == 2, "Unrelated text must not mark a readable work removed")
+    },
     Check("CMSSourceTests.duokanDecodesNativeReaderAndUsesSiteImageRoute") {
         let source = cmsSource("www.duokanmh.com");let chapter = cmsChapter(source,duokan:true)
         let pages = try await cmsAdapter(source).pages(chapter:chapter,context:cmsPageContext(source,"duokan-cms-reader",duokan:true))
         try expect(pages.count == 2 && pages.map(\.id.externalID) == ["1","2"], "Decode the entire image list using stable ordinal page IDs")
-        try expect(pages[0].request.url.absoluteString == "https://images.test/" + Data("https://origin.test/1.webp".utf8).base64EncodedString() && pages[0].request.referer == chapter.url, "Use the site's actual image host and encoding route")
+        try expect(pages[0].request.url.absoluteString == "https://origin.test/1.webp" && pages[0].request.referer == chapter.url, "Keep absolute image URLs, as the current site reader does")
+    },
+    Check("CMSSourceTests.duokanPreservesAbsoluteImagesAndNoReferrer") {
+        let source = cmsSource("www.duokanmh.com")
+        let pages = try await cmsAdapter(source).pages(chapter: cmsChapter(source, duokan: true), context: cmsPageContext(source, "duokan-cms-absolute", duokan: true))
+        try expect(pages[0].request.url.absoluteString == "https://images.test/already-routed.webp", "Already absolute images must not be wrapped in the relay a second time")
+        try expect(pages[1].request.url.absoluteString == "https://relay.test/" + Data("relative.webp".utf8).base64EncodedString(), "Only relative image paths use the declared relay")
+        try expect(pages.allSatisfy { $0.request.referer == nil }, "Honor the site's explicit no_referrer transport")
     },
     Check("CMSSourceTests.fengcheDecodesNativeReader") {
         let source = cmsSource("www.fengchemh.com");let chapter = cmsChapter(source,duokan:false)

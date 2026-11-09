@@ -56,7 +56,18 @@ public struct GuaziAdapter: SourceAdapter {
     }
     public init() { }
     public func recommendations(context: ParserContext) async throws -> SourceRecommendations {
-        try await HTMLCatalogDiscovery.recommendations(adapter: self, context: context, rootURL: context.source.baseURL)
+        var snapshot = try await HTMLCatalogDiscovery.recommendations(adapter: self, context: context, rootURL: context.source.baseURL)
+        // Homepage tag links now redirect to numeric categories. Discover the
+        // current canonical IDs from the site's own directory, keeping strict
+        // redirect checks for all subsequent category and pagination requests.
+        do {
+            let taxonomy = try await HTMLCatalogDiscovery.recommendations(adapter: self, context: context,
+                rootURL: context.source.baseURL.appendingPathComponent("category.php"))
+            let genres = taxonomy.channels.filter { $0.kind == .genre }
+            if !genres.isEmpty { snapshot.channels.removeAll { $0.kind == .genre }; snapshot.channels += genres }
+        } catch is CancellationError { throw CancellationError() }
+        catch { snapshot.notices.append("完整分类暂未加载，请刷新来源后重试。") }
+        return snapshot
     }
     public func catalogPage(channel: CatalogChannel, sort: CatalogSort, pageURL: URL?, context: ParserContext) async throws -> CatalogPage {
         let url: URL

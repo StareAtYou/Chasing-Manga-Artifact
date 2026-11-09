@@ -3,6 +3,18 @@ import MangaCore
 import MangaPlatform
 public func fixtureText(_ name: String) throws -> String { try String(contentsOf: Bundle.module.url(forResource: name, withExtension: "html", subdirectory: "Fixtures")!, encoding: .utf8) }
 public let guaziAdapterChecks: [Check] = [
+    Check("GuaziAdapterTests.genreLinksUseCanonicalCategoryDirectory") {
+        let source = BuiltinSources.candidates()[1]
+        let category = source.baseURL.appendingPathComponent("category.php")
+        let work = "<a href='/comic.php?id=1'><h3>漫画甲</h3></a>"
+        let home = "<a href='/category.php?tag=恋爱'>恋爱</a>" + work
+        let taxonomy = "<a href='/category.php?cid=9'>恋爱</a>" + work
+        let context = ParserContext(source: source, client: FixtureHTTPClient([source.baseURL.absoluteString: textResponse(home, source.baseURL), category.absoluteString: textResponse(taxonomy, category)]))
+        let snapshot = try await GuaziAdapter().recommendations(context: context)
+        let genres = snapshot.channels.filter { $0.kind == .genre }
+        try expect(genres.count == 1 && genres[0].url.query == "cid=9", "Use canonical category IDs instead of obsolete homepage tag redirects")
+        try expect(!snapshot.sections.isEmpty, "Keep homepage sections")
+    },
     Check("GuaziAdapterTests.guaziDirectoryAndPages") {
         let source = BuiltinSources.candidates()[1]; let url = source.baseURL.appendingPathComponent("comic.php").appending(queryItems: [URLQueryItem(name: "id", value: "100")])
         let chapterURL = URL(string: "https://www.guazimanhua.com/chapter.php?id=2001")!
